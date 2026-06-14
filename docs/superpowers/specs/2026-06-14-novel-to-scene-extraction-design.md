@@ -24,9 +24,81 @@
 4. **正典主檔**：`CANON_world.md`、`CANON_characters.md`、`CANON_power.md`。只作校準與維護追溯，必須標明是 canon support，不可無證據地改寫正文場景。
 5. **封存資料**：`novel/02_PROJECT_DATABASE/04_ARCHIVE/` 不作為現行故事證據，除非使用者明確要求查舊案。
 
-## 3. 第一階段範圍
+## 3. External Patterns To Borrow
 
-### 3.1 In Scope
+本專案不是直接複製既有工具，但第一階段應吸收下列共通做法：
+
+- **Twine pattern**：互動故事通常由 passage、link、variable、macro、story format 組成；不同 story format 會提供不同 layout、macro 與 JavaScript 能力。對本專案的啟發是：Scene Card 不應是一坨摘要，而要可轉成節點、選項與狀態。參考：[Twine Cookbook - Story Formats](https://twinery.org/cookbook/terms/terms_storyformats.html)。
+- **Ink pattern**：Ink 以 knot 作為內容基本結構，並用 option/divert 形成分支與匯合；較長故事可再用 stitch 拆細。對本專案的啟發是：chapter card 可先對應 knot，scene beat 可對應 stitch，interactionSeeds 之後才轉成選項。參考：[inkle/ink WritingWithInk](https://github.com/inkle/ink/blob/master/Documentation/WritingWithInk.md)。
+- **STORY2GAME pattern**：互動化的關鍵不是只生成故事，而是追蹤 game state，並把 action 的 preconditions/effects 作為狀態變更依據。對本專案的啟發是：interactionSeeds 必須先有 `requires` 與 `effects`，不能只寫「可以點」。參考：[STORY2GAME](https://arxiv.org/abs/2505.03547)。
+- **Narrative-to-Scene pattern**：文本轉場景應先做時間切分，再抽 Object-Relation-Object 空間謂詞，最後才做視覺資產與空間放置。對本專案的啟發是：Visual Brief 之前必須先有 temporal frame、object relation 與 spatial constraints。參考：[Narrative-to-Scene Generation](https://arxiv.org/abs/2509.04481)。
+
+## 4. AI Operating Logic
+
+為了讓 AI 跑起來穩定，後續實作必須把抽取拆成明確階段，而不是用單一 prompt 一次生出所有內容：
+
+```text
+1. Source manifest
+   - 找章節檔、卷檔、允許讀取的 canon 檔。
+   - 計算 sourceHash。
+
+2. Evidence pass
+   - 只從章節正文抓候選段落。
+   - 產生 text-anchor evidence。
+   - 尚不做視覺化推論。
+
+3. Entity pass
+   - 抽角色、地點、物件、機構。
+   - 每個正式 entity 必須連到 evidence。
+   - canon support 只能補充名稱一致性與維護備註。
+
+4. Temporal beat pass
+   - 將章節拆成 2-5 個 sceneBeats。
+   - 每個 beat 必須有 start cue、end cue、location、active characters、action summary。
+
+5. Spatial relation pass
+   - 抽 object-relation-object 或 actor-relation-object。
+   - 例：林燼 inside 配電槽後方；公共終端 displays 欠稅通知；蘇嵐 gives 灰藍色藥劑。
+
+6. Interaction seed pass
+   - 從物件、制度壓力與角色行動產生互動候選。
+   - 每個候選至少包含 label、target、requires、effects、evidenceIds。
+
+7. Reader-safe projection
+   - 移除後續劇透、作者語、AI流程語。
+   - 只輸出當章讀者能知道的內容。
+
+8. Validation
+   - schema validation。
+   - evidence coverage check。
+   - forbidden-term check。
+   - stale hash check。
+```
+
+### 4.1 Hard Rules For AI Output
+
+- 不可把 `summary` 當證據；summary 只能作導覽。
+- 不可把 `CANON_*` 中後續才揭露的內容寫入第 1 章 reader-safe fields。
+- 不可自創角色、地點、勢力名；若推測合理但無證據，放進 `internalCandidates`。
+- 不可直接生 HTML；必須先通過 Scene Card。
+- 不可直接生圖片 prompt；必須先通過 Visual Brief。
+- 所有互動都必須說明 `requires` 與 `effects`，即使第一版只是 narrative state。
+
+### 4.2 Working Definitions
+
+| 名稱 | 定義 |
+| --- | --- |
+| `chapter_scene_card` | 一章一張的主卡，類似 Twine/Ink 的大節點。 |
+| `sceneBeat` | 章節中的可視覺化段落，類似 knot 內的 stitch。 |
+| `temporalFrame` | 場景的時間切片，例如 entering / confrontation / aftermath。 |
+| `spatialPredicate` | 空間關係三元組，例如 actor-relation-object。 |
+| `interactionSeed` | 未實作的互動候選，需有前置條件與效果。 |
+| `readerSafe` | 讀者當章可見、不劇透、不含作者/AI內部語的投影輸出。 |
+| `internalCandidate` | 有可能正確但證據不足、暫不進正式輸出的候選。 |
+
+## 5. 第一階段範圍
+
+### 5.1 In Scope
 
 - 定義 `chapter_scene_card` schema。
 - 以第 1 章產出一張章節級 Scene Card。
@@ -38,7 +110,7 @@
 - 每個 scene beat 至少附一條 `evidence`。
 - 建立 Visual Brief 的種子欄位，但不要求本階段生成 HTML。
 
-### 3.2 Out of Scope
+### 5.2 Out of Scope
 
 - 不修改小說正文。
 - 不修改 reader UI、PWA 或 `reader/public-dossier/`。
@@ -46,7 +118,7 @@
 - 不自動生成圖片資產。
 - 不把第 1 章拆成完整場景資料庫；場景級卡片留到 schema 穩定後再做。
 
-## 4. Scene Card Schema
+## 6. Scene Card Schema
 
 第一版 schema 以 JSON 為主。建議後續實作將衍生資料放在 `03_SCENE_PIPELINE/scene-cards/`，讓它與小說正文、內部正典、讀者公開資料層分開；正式路徑仍由 implementation plan 最終確認。建議結構如下：
 
@@ -65,8 +137,10 @@
   "objects": [],
   "institutions": [],
   "sceneBeats": [],
+  "spatialPredicates": [],
   "visualBriefSeeds": {},
   "interactionSeeds": [],
+  "internalCandidates": [],
   "spoilerPolicy": {
     "readerVisibleUntilChapter": 1,
     "allowedCanonDepth": "chapter-local"
@@ -75,7 +149,7 @@
 }
 ```
 
-## 5. Field Definitions
+## 7. Field Definitions
 
 | 欄位 | 用途 |
 | --- | --- |
@@ -90,12 +164,14 @@
 | `objects` | 可視覺化或可互動的重要物件。 |
 | `institutions` | 審計局、黑市、刀犬幫等制度或組織。 |
 | `sceneBeats` | 章節中的主要場景節拍，每個 beat 包含目的、空間、行動與證據。 |
+| `spatialPredicates` | 角色/物件/地點之間的空間或功能關係，供後續場景布局使用。 |
 | `visualBriefSeeds` | 色彩、光線、氣味、材質、構圖等後續視覺 brief 種子。 |
 | `interactionSeeds` | 可互動元素候選，例如點擊欠稅紅字、查看腕環、接取晶片。 |
+| `internalCandidates` | 證據不足或可能劇透的候選資料，不進 reader-safe 輸出。 |
 | `spoilerPolicy` | 限制抽取器不要將後續章節真相提前放進第 1 章讀者可見輸出。 |
 | `evidence` | 卡片層級的來源證據清單。細節欄位也可各自掛 evidence id。 |
 
-## 6. Evidence Model
+## 8. Evidence Model
 
 每條 evidence 至少包含：
 
@@ -115,7 +191,27 @@
 
 第一版使用 `text-anchor`，避免中文檔案在不同工具中行號漂移。後續可加 `lineRange` 或段落 index，但不作為唯一定位依據。
 
-## 7. 第 1 章預期抽取結果
+## 9. Interaction Seed Model
+
+互動候選使用保守模型，先描述敘事狀態，不急著綁 UI：
+
+```json
+{
+  "id": "int-ch001-terminal-tax-notice",
+  "label": "查看欠稅通知",
+  "target": "公共終端",
+  "requires": ["reader_safe_progress >= 1", "sceneBeat == public_terminal"],
+  "effects": [
+    { "state": "lin_jin.debtPressure", "change": "revealed" },
+    { "state": "countdown.clearance", "change": "72h" }
+  ],
+  "evidenceIds": ["ev-ch001-tax-terminal"]
+}
+```
+
+第一版不需要真的執行互動，但每個 `interactionSeed` 都必須能回答：玩家/讀者看什麼、碰什麼、狀態變了什麼、證據在哪裡。
+
+## 10. 第 1 章預期抽取結果
 
 第 1 章的 Scene Card 應能穩定抽出：
 
@@ -127,8 +223,9 @@
 - **機構/勢力**：轉化區審計局、刀犬幫、黑市。
 - **視覺質地**：低氧、冷凝水、鏽蝕、紫色 LED、病態終端紅字、寒冷投放帶。
 - **互動候選**：檢查腕環欠稅通知、查看終端公告、接取任務晶片、翻看裂縫回收備註。
+- **空間關係候選**：林燼倒掛在配電槽後方；公共終端顯示欠稅紅字；蘇嵐在吧台後遞出透明晶片；黑市牆角陳列回收器官罐。
 
-## 8. Data Flow
+## 11. Data Flow
 
 ```text
 chapter markdown
@@ -149,7 +246,7 @@ visual brief / html scene brief（後續階段）
 - **reader-safe fields**：可給讀者或互動場景使用，不含後續劇透。
 - **internal fields**：維護用來源、canon support、confidence、重建狀態，不直接顯示給讀者。
 
-## 9. Error Handling
+## 12. Error Handling
 
 - 找不到章節檔：回報 missing source，不產卡。
 - 章節 hash 改變：標記 card stale，需要重建。
@@ -157,7 +254,7 @@ visual brief / html scene brief（後續階段）
 - evidence 缺失：該欄位不得進入 reader-safe 輸出。
 - 抽取信心不足：保留在 internal candidate，不進入正式 Scene Card。
 
-## 10. Testing And Acceptance
+## 13. Testing And Acceptance
 
 第一階段驗收以第 1 章為準：
 
@@ -167,8 +264,10 @@ visual brief / html scene brief（後續階段）
 - reader-safe fields 不包含「伏筆」「後續揭露」「V7 才揭露」「作者需注意」「AI 續寫」等後設語。
 - 改動第 1 章內容後，`sourceHash` 能使 card 被標記為 stale。
 - 不讀取 `04_ARCHIVE/` 作為現行證據。
+- `interactionSeeds` 每筆都有 `requires`、`effects`、`evidenceIds`。
+- `spatialPredicates` 每筆都有 evidence，不從視覺想像反推原文。
 
-## 11. Follow-up Phases
+## 14. Follow-up Phases
 
 1. **Implementation Plan**：建立最小 CLI 或 script，從第 1 章產生 Scene Card。
 2. **Chapter Batch**：第 1-5 章批次抽取，檢查 schema 是否承受不同章節型態。
