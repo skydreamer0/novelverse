@@ -1,0 +1,3 @@
+[submodule "novel"]
+	path = novel
+	url = https://github.com/skydreamer0/novel_ark-micro-civ.git
