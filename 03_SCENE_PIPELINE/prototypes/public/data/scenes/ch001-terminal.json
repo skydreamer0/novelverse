@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "novel-html-brief.v1",
+  "cardType": "html_scene_brief",
+  "sceneId": "ch001-terminal",
+  "title": "公共終端與欠稅通知",
+  "layoutEngine": {
+    "type": "visual-novel",
+    "theme": "dark-glass"
+  },
+  "stateVariables": {
+    "has_read_notice": false,
+    "tension_level": 0
+  },
+  "nodes": [
+    {
+      "id": "start",
+      "text": "你站在第七維護區的公共終端前。閃爍的螢幕映照著你略顯疲憊的臉龐，周圍是低頻的引擎運作聲。終端機上方有一條閃爍的紅字訊息。",
+      "visuals": {
+        "background": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=2070"
+      },
+      "choices": [
+        {
+          "label": "查看紅色訊息",
+          "target": "read_notice",
+          "requires": []
+        },
+        {
+          "label": "檢查手環的剩餘電量",
+          "target": "check_wristband",
+          "requires": []
+        }
+      ]
+    },
+    {
+      "id": "read_notice",
+      "text": "【欠稅通知】\n林燼，您的居住權限即將在 72 小時後到期。由於未能繳納本季度的空氣循環稅與居住稅，強制清退程序已啟動。\n若不儘速補繳，您將被驅逐至艙底。",
+      "speaker": "系統廣播",
+      "visuals": {
+        "background": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=2070"
+      },
+      "choices": [
+        {
+          "label": "該死...",
+          "target": "react_to_notice",
+          "effects": [
+            { "state": "has_read_notice", "operation": "set", "value": true },
+            { "state": "tension_level", "operation": "add", "value": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "check_wristband",
+      "text": "灰藍色的抑制器手環發出微弱的嗡嗡聲。螢幕上顯示電量剩餘 14%，這是你唯一能證明自己還活著的標籤。",
+      "choices": [
+        {
+          "label": "返回",
+          "target": "start"
+        }
+      ]
+    },
+    {
+      "id": "react_to_notice",
+      "text": "距離被丟到艙底只剩下三天。你別無選擇，必須去一趟黑市找蘇蘭。或許她那裡還有什麼危險的委託能讓你應急。",
+      "speaker": "林燼",
+      "choices": [
+        {
+          "label": "前往黑市",
+          "target": "end_demo"
+        }
+      ]
+    },
+    {
+      "id": "end_demo",
+      "text": "（演示結束。後續場景：黑市酒吧與任務晶片）",
+      "choices": []
+    }
+  ]
+}

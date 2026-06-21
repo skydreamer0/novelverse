@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scene 1: 母艦外層殘骸區 (3D Prototype)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Instructions Overlay (Shown before clicking to start) -->
+  <div id="instructions">
+    <div class="panel">
+      <h1>任務：母艦外層殘骸區</h1>
+      <p>點擊畫面開始</p>
+      <ul style="text-align: left; margin-top: 20px; font-size: 16px;">
+        <li><strong>W, A, S, D</strong> - 移動</li>
+        <li><strong>滑鼠</strong> - 轉動視角</li>
+        <li><strong>E</strong> - 互動 (收集殘片 / 啟動裝置)</li>
+        <li><strong>目標</strong>：收集 5 個規則殘片 (黃光) 後啟動導航信標 (紅錐體)。</li>
+        <li><strong>警告</strong>：避開紫黑色的規則霧與深淵生物 (紅色方塊)，靠近會導致污染值上升！</li>
+        <li><strong>解法</strong>：尋找藍色清垢裝置，按 E 降低污染值。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- HUD Overlay -->
+  <div id="hud">
+    <div id="crosshair">+</div>
+    
+    <div id="top-left">
+      <div id="mission-text">任務：收集規則殘片 (0 / 5)</div>
+    </div>
+    
+    <div id="bottom-left">
+      <div id="pollution-label">規則污染值</div>
+      <div id="pollution-bar-bg">
+        <div id="pollution-bar-fill"></div>
+      </div>
+    </div>
+
+    <!-- Interaction Prompt -->
+    <div id="interaction-prompt">按 [E] 鍵互動</div>
+  </div>
+
+  <!-- Game Over / Win Screen -->
+  <div id="end-screen" style="display: none;">
+    <div class="panel">
+      <h1 id="end-title">Game Over</h1>
+      <p id="end-message">污染值過高，你已被深淵吞噬。</p>
+      <button onclick="location.reload()">重新啟動</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
