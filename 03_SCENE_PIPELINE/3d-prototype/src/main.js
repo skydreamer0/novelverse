@@ -25,7 +25,7 @@ scene.add(key);
 
 const world = new MothershipWorld(scene);
 const controller = new FirstPersonController(camera, renderer.domElement);
-const ui = new UIManager();
+const ui = new UIManager({ onResume: () => renderer.domElement.requestPointerLock() });
 const state = new PrologueState();
 const director = new PrologueDirector({ state, world, ui, controller });
 const interaction = new InteractionSystem(camera, {
@@ -35,9 +35,18 @@ const interaction = new InteractionSystem(camera, {
 interaction.setTargets(world.getInteractables());
 
 const instructions = document.getElementById('instructions');
-instructions.addEventListener('click', () => renderer.domElement.requestPointerLock());
+let hasStarted = false;
+document.getElementById('start-button').addEventListener('click', () => {
+  hasStarted = true;
+  renderer.domElement.requestPointerLock();
+});
 document.addEventListener('pointerlockchange', () => {
-  instructions.style.display = document.pointerLockElement === renderer.domElement ? 'none' : 'flex';
+  const locked = document.pointerLockElement === renderer.domElement;
+  instructions.style.display = locked || ui.isModalOpen() || ui.isEnding() ? 'none' : 'grid';
+  if (!locked && hasStarted && !ui.isModalOpen() && !ui.isEnding()) {
+    instructions.querySelector('.premise').textContent = '遊戲已暫停。點擊下方按鈕返回第九段。';
+    document.getElementById('start-button').querySelector('span').textContent = '返回艙底';
+  }
 });
 
 addEventListener('resize', () => {
