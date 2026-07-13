@@ -1,56 +1,100 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scene 1: 母艦外層殘骸區 (3D Prototype)</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#080c0e" />
+  <title>艙底種火｜第一章：欠稅通知</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <!-- Instructions Overlay (Shown before clicking to start) -->
-  <div id="instructions">
-    <div class="panel">
-      <h1>任務：母艦外層殘骸區</h1>
-      <p>點擊畫面開始</p>
-      <ul style="text-align: left; margin-top: 20px; font-size: 16px;">
-        <li><strong>W, A, S, D</strong> - 移動</li>
-        <li><strong>滑鼠</strong> - 轉動視角</li>
-        <li><strong>E</strong> - 互動 (收集殘片 / 啟動裝置)</li>
-        <li><strong>目標</strong>：收集 5 個規則殘片 (黃光) 後啟動導航信標 (紅錐體)。</li>
-        <li><strong>警告</strong>：避開紫黑色的規則霧與深淵生物 (紅色方塊)，靠近會導致污染值上升！</li>
-        <li><strong>解法</strong>：尋找藍色清垢裝置，按 E 降低污染值。</li>
-      </ul>
-    </div>
+  <div id="instructions" class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+    <div class="gate__rail" aria-hidden="true"></div>
+    <main class="gate__content">
+      <p class="kicker">ARK MAINTENANCE NETWORK · D9</p>
+      <h1 id="gate-title"><span>艙底</span>種火</h1>
+      <p class="chapter">第一章｜欠稅通知</p>
+      <p class="premise">氧氣味是甜的。這代表過濾器快壞了。</p>
+      <button id="start-button" class="primary-action" type="button">
+        <span>進入第九維修段</span><small>點擊後鎖定滑鼠</small>
+      </button>
+      <dl class="controls">
+        <div><dt>W A S D</dt><dd>移動</dd></div>
+        <div><dt>滑鼠</dt><dd>觀察</dd></div>
+        <div><dt>E</dt><dd>操作</dd></div>
+        <div><dt>TAB</dt><dd>腕環</dd></div>
+      </dl>
+    </main>
+    <aside class="gate__warning"><span>生命維持警報</span><strong>氧循環壓力下降</strong></aside>
   </div>
 
-  <!-- HUD Overlay -->
-  <div id="hud">
-    <div id="crosshair">+</div>
-    
-    <div id="top-left">
-      <div id="mission-text">任務：收集規則殘片 (0 / 5)</div>
-    </div>
-    
-    <div id="bottom-left">
-      <div id="pollution-label">規則污染值</div>
-      <div id="pollution-bar-bg">
-        <div id="pollution-bar-fill"></div>
+  <div id="hud" aria-live="polite">
+    <header class="sector-strip">
+      <span class="sector-strip__pulse"></span>
+      <span id="sector-name">D9／配電槽後方</span>
+      <span class="sector-strip__system">母艦時間 03:17</span>
+    </header>
+    <div id="crosshair" class="reticle" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div id="interaction-prompt" class="interaction" hidden>按 E 操作</div>
+    <div id="subtitle" class="subtitle" hidden></div>
+
+    <section id="wristband" class="wristband" aria-label="林燼的磨損腕環">
+      <div class="wristband__serial">D9-4417 <span>LINK/WEAK</span></div>
+      <div class="wristband__grid">
+        <div><small>氧循環</small><strong id="oxygen-value">100</strong><em>%</em></div>
+        <div><small>義肢負荷</small><strong id="leg-value">12</strong><em>%</em></div>
+        <div id="debt-cell" class="is-locked"><small>生存欠額</small><strong id="debt-value">--</strong><em>點</em></div>
+        <div id="deadline-cell" class="is-locked"><small>清退限期</small><strong id="deadline-value">--</strong><em>時</em></div>
       </div>
-    </div>
+      <div class="wristband__objective"><span>當前</span><b id="objective-text">恢復第九段氧循環</b></div>
+    </section>
 
-    <!-- Interaction Prompt -->
-    <div id="interaction-prompt">按 [E] 鍵互動</div>
+    <nav class="access-tools" aria-label="顯示設定">
+      <button id="contrast-toggle" type="button" aria-pressed="false">高對比</button>
+      <button id="motion-toggle" type="button" aria-pressed="false">減少動態</button>
+      <button id="audio-toggle" type="button" aria-pressed="false">靜音</button>
+    </nav>
   </div>
 
-  <!-- Game Over / Win Screen -->
-  <div id="end-screen" style="display: none;">
-    <div class="panel">
-      <h1 id="end-title">Game Over</h1>
-      <p id="end-message">污染值過高，你已被深淵吞噬。</p>
-      <button onclick="location.reload()">重新啟動</button>
+  <section id="terminal-overlay" class="system-overlay" hidden aria-labelledby="audit-title">
+    <div class="audit-panel">
+      <header><span>轉化區審計局</span><code>AUDIT NODE / D9-PUBLIC-04</code></header>
+      <p class="scanline">腕環掃描完成</p>
+      <h2 id="audit-title">居民編號：D9-4417，林燼</h2>
+      <dl class="audit-ledger">
+        <div><dt>歷史欠額</dt><dd>二十七點</dd></div>
+        <div><dt>新增戰備附加稅</dt><dd>九點</dd></div>
+        <div class="audit-ledger__total"><dt>最低生存貢獻需求</dt><dd>四十點</dd></div>
+        <div><dt>限期</dt><dd>七十二小時</dd></div>
+      </dl>
+      <p class="audit-threat">未達標將收回氧氣配額與居住權，轉入回收序列。</p>
+      <button id="terminal-close" class="system-button" type="button">刷走畫面</button>
     </div>
-  </div>
+  </section>
 
+  <section id="bargain-overlay" class="system-overlay" hidden aria-labelledby="bargain-title">
+    <div class="market-panel">
+      <p class="kicker">廢棄減壓艙／醫療回收站</p>
+      <h2 id="bargain-title">「四十點？審計局最近真餓。」</h2>
+      <p>裂縫回收，丙級。你只能把一件事談到對自己有利。</p>
+      <div class="bargain-grid">
+        <button type="button" data-bargain="pay"><b>提高報酬</b><span>先讓這趟值得送命</span></button>
+        <button type="button" data-bargain="intel"><b>追問情報</b><span>賀鐵沒寫進合約的部分</span></button>
+        <button type="button" data-bargain="medicine"><b>拿走藥劑</b><span>壓住義腿的神經震顫</span></button>
+      </div>
+      <p class="market-panel__note">無論選哪一項，你都必須接下任務。</p>
+    </div>
+  </section>
+
+  <section id="end-screen" class="ending" hidden aria-labelledby="end-title">
+    <div class="ending__arc" aria-hidden="true"></div>
+    <p>CHAPTER 01 / COMPLETE</p>
+    <h2 id="end-title">有什麼東西，<br />要醒了。</h2>
+    <span>下一章：裂縫第一滴血</span>
+    <button type="button" onclick="location.reload()">重新進入艙底</button>
+  </section>
+
+  <noscript>本互動場景需要 JavaScript。</noscript>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
