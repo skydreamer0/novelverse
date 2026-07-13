@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './World.js';
+import { MothershipWorld } from './world/MothershipWorld.js';
 import { FirstPersonController } from './core/FirstPersonController.js';
 import { InteractionSystem } from './core/InteractionSystem.js';
 
@@ -20,10 +20,10 @@ const key = new THREE.DirectionalLight(0x9eb4c6, 1.1);
 key.position.set(20, 35, 15);
 scene.add(key);
 
-const world = new World(scene);
+const world = new MothershipWorld(scene);
 const controller = new FirstPersonController(camera, renderer.domElement);
 const interaction = new InteractionSystem(camera);
-interaction.setTargets([]);
+interaction.setTargets(world.getInteractables());
 
 const instructions = document.getElementById('instructions');
 instructions.addEventListener('click', () => renderer.domElement.requestPointerLock());
@@ -43,6 +43,7 @@ function animate() {
   const delta = Math.min(clock.getDelta(), 0.05);
   controller.update(delta, document.pointerLockElement === renderer.domElement);
   interaction.update();
+  world.update(delta);
   renderer.render(scene, camera);
 }
 animate();

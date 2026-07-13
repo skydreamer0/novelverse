@@ -9,7 +9,7 @@ export class FirstPersonController {
     this.position = start.clone();
     this.velocity = new THREE.Vector3();
     this.keys = new Set();
-    this.yaw = Math.PI;
+    this.yaw = 0;
     this.pitch = 0;
     this.speed = 4.2;
     this.legLoad = 0;
