@@ -5,6 +5,8 @@ import { InteractionSystem } from './core/InteractionSystem.js';
 import { PrologueState } from './core/PrologueState.js';
 import { PrologueDirector } from './core/PrologueDirector.js';
 import { UIManager } from './UIManager.js';
+import { AudioDirector } from './core/AudioDirector.js';
+import { QualityManager } from './core/QualityManager.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x070a0d);
@@ -17,6 +19,9 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
+const forcedQuality = new URLSearchParams(location.search).get('quality');
+const quality = new QualityManager(renderer, { force: forcedQuality });
+quality.apply();
 
 scene.add(new THREE.HemisphereLight(0x8090a0, 0x050608, 0.65));
 const key = new THREE.DirectionalLight(0x9eb4c6, 1.1);
@@ -25,9 +30,13 @@ scene.add(key);
 
 const world = new MothershipWorld(scene);
 const controller = new FirstPersonController(camera, renderer.domElement);
-const ui = new UIManager({ onResume: () => renderer.domElement.requestPointerLock() });
+const audio = new AudioDirector();
+const ui = new UIManager({
+  onResume: () => renderer.domElement.requestPointerLock(),
+  onMute: (muted) => audio.setMuted(muted),
+});
 const state = new PrologueState();
-const director = new PrologueDirector({ state, world, ui, controller });
+const director = new PrologueDirector({ state, world, ui, controller, audio });
 const interaction = new InteractionSystem(camera, {
   onPrompt: (target) => target ? ui.showInteraction(`[E] ${target.label}`) : ui.hideInteraction(),
   onAction: (action) => director.handleAction(action),
@@ -38,6 +47,7 @@ const instructions = document.getElementById('instructions');
 let hasStarted = false;
 document.getElementById('start-button').addEventListener('click', () => {
   hasStarted = true;
+  audio.activate();
   renderer.domElement.requestPointerLock();
 });
 document.addEventListener('pointerlockchange', () => {
