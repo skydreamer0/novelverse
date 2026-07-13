@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { MothershipWorld } from './world/MothershipWorld.js';
 import { FirstPersonController } from './core/FirstPersonController.js';
 import { InteractionSystem } from './core/InteractionSystem.js';
+import { PrologueState } from './core/PrologueState.js';
+import { PrologueDirector } from './core/PrologueDirector.js';
+import { UIManager } from './UIManager.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x070a0d);
@@ -22,7 +25,13 @@ scene.add(key);
 
 const world = new MothershipWorld(scene);
 const controller = new FirstPersonController(camera, renderer.domElement);
-const interaction = new InteractionSystem(camera);
+const ui = new UIManager();
+const state = new PrologueState();
+const director = new PrologueDirector({ state, world, ui, controller });
+const interaction = new InteractionSystem(camera, {
+  onPrompt: (target) => target ? ui.showInteraction(`[E] ${target.label}`) : ui.hideInteraction(),
+  onAction: (action) => director.handleAction(action),
+});
 interaction.setTargets(world.getInteractables());
 
 const instructions = document.getElementById('instructions');
