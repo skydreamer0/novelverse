@@ -2,6 +2,10 @@ import * as THREE from 'three';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
+export function shouldEnableMovement({ locked, fallbackActive, modalOpen, ending }) {
+  return (locked || fallbackActive) && !modalOpen && !ending;
+}
+
 export class FirstPersonController {
   constructor(camera, domElement, { start = new THREE.Vector3(0, 1.65, 8) } = {}) {
     this.camera = camera;
@@ -14,18 +18,26 @@ export class FirstPersonController {
     this.speed = 4.2;
     this.legLoad = 0;
     this.elapsed = 0;
+    this.fallbackLook = false;
+    this.dragging = false;
     this.bounds = { minX: -5, maxX: 5, minZ: -220, maxZ: 12 };
 
     this.onKeyDown = (event) => this.keys.add(event.code);
     this.onKeyUp = (event) => this.keys.delete(event.code);
     this.onMouseMove = (event) => {
-      if (document.pointerLockElement !== this.domElement) return;
+      if (document.pointerLockElement !== this.domElement && !(this.fallbackLook && this.dragging)) return;
       this.yaw -= event.movementX * 0.0022;
       this.pitch = THREE.MathUtils.clamp(this.pitch - event.movementY * 0.0018, -1.25, 1.25);
     };
+    this.onPointerDown = (event) => {
+      if (this.fallbackLook && event.button === 0) this.dragging = true;
+    };
+    this.onPointerUp = () => { this.dragging = false; };
     document.addEventListener('keydown', this.onKeyDown);
     document.addEventListener('keyup', this.onKeyUp);
     document.addEventListener('mousemove', this.onMouseMove);
+    this.domElement.addEventListener('pointerdown', this.onPointerDown);
+    document.addEventListener('pointerup', this.onPointerUp);
     this.camera.position.copy(this.position);
   }
 
@@ -35,6 +47,11 @@ export class FirstPersonController {
 
   setBounds(bounds) {
     this.bounds = { ...this.bounds, ...bounds };
+  }
+
+  enableFallbackLook(enabled = true) {
+    this.fallbackLook = enabled;
+    this.domElement.style.cursor = enabled ? 'grab' : '';
   }
 
   update(delta, canMove = true) {
@@ -68,5 +85,7 @@ export class FirstPersonController {
     document.removeEventListener('keydown', this.onKeyDown);
     document.removeEventListener('keyup', this.onKeyUp);
     document.removeEventListener('mousemove', this.onMouseMove);
+    this.domElement.removeEventListener('pointerdown', this.onPointerDown);
+    document.removeEventListener('pointerup', this.onPointerUp);
   }
 }

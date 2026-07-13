@@ -34,8 +34,6 @@ export function addGratedFloor(group, zCenter, length, material) {
 export function addHullRibs(group, zStart, zEnd, material, spacing = 5) {
   for (let z = zStart; z >= zEnd; z -= spacing) {
     const rib = new THREE.Mesh(new THREE.TorusGeometry(5.2, 0.18, 8, 28, Math.PI), material);
-    rib.rotation.z = Math.PI / 2;
-    rib.rotation.y = Math.PI / 2;
     rib.position.set(0, 0.1, z);
     group.add(rib);
   }

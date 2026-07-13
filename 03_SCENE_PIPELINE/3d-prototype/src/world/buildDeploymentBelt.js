@@ -9,8 +9,6 @@ export function buildDeploymentBelt(materials) {
 
   const airlock = new THREE.Group();
   const frame = new THREE.Mesh(new THREE.TorusGeometry(4.6, 0.35, 10, 32, Math.PI), materials.rib);
-  frame.rotation.z = Math.PI / 2;
-  frame.rotation.y = Math.PI / 2;
   const door = new THREE.Mesh(new THREE.BoxGeometry(8.6, 6.5, 0.7), materials.hull);
   door.position.y = 3.1;
   airlock.add(frame, door);
@@ -34,11 +32,45 @@ export function buildDeploymentBelt(materials) {
 
   const exterior = new THREE.Group();
   addGratedFloor(exterior, -168, 50, materials.grate);
-  const hull = new THREE.Mesh(new THREE.CylinderGeometry(42, 42, 90, 48, 1, true, 0, Math.PI * 0.52), materials.hull);
-  hull.rotation.z = Math.PI / 2;
-  hull.rotation.y = Math.PI / 2;
-  hull.position.set(-37, 19, -169);
-  exterior.add(hull);
+  const hullStrips = new THREE.Group();
+  const exteriorHullMaterial = materials.hull.clone();
+  exteriorHullMaterial.color.setHex(0x69777b);
+  exteriorHullMaterial.roughness = 0.72;
+  const seamMaterial = new THREE.MeshBasicMaterial({ color: 0x526f74, transparent: true, opacity: 0.75 });
+  for (let i = -4; i <= 4; i += 1) {
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(5.7, 0.72, 120), exteriorHullMaterial);
+    strip.position.set(i * 5.8, 9.5 + Math.abs(i) * 1.45, -174);
+    strip.rotation.z = -i * 0.055;
+    strip.receiveShadow = true;
+    hullStrips.add(strip);
+
+    const longitudinalSeam = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.035, 118), seamMaterial);
+    longitudinalSeam.position.set(i * 5.8 + 2.78, 9.1 + Math.abs(i) * 1.45, -174);
+    longitudinalSeam.rotation.z = -i * 0.055;
+    hullStrips.add(longitudinalSeam);
+
+    for (const z of [-132, -158, -184, -210]) {
+      const seam = statusLight((Math.abs(i) + Math.abs(z)) % 5 === 0 ? 0xff4e34 : 0x8dcbd3, 1.7);
+      seam.geometry = new THREE.BoxGeometry(0.08, 0.12, 2.2);
+      seam.position.set(i * 5.8 + 2.72, 9.08 + Math.abs(i) * 1.45, z);
+      seam.rotation.z = -i * 0.055;
+      hullStrips.add(seam);
+    }
+  }
+  exterior.add(hullStrips);
+
+  const nearFill = new THREE.PointLight(0x92bdc8, 800, 72, 1.25);
+  nearFill.position.set(0, 2.4, -150);
+  const farFill = new THREE.PointLight(0x6d91a3, 650, 78, 1.4);
+  farFill.position.set(-8, 1.5, -198);
+  exterior.add(nearFill, farFill);
+
+  for (const x of [-24, 24]) {
+    const truss = new THREE.Mesh(new THREE.BoxGeometry(1.1, 18, 74), materials.hullDark);
+    truss.position.set(x, 18, -176);
+    truss.rotation.z = x < 0 ? -0.38 : 0.38;
+    exterior.add(truss);
+  }
 
   for (let i = 0; i < 42; i += 1) {
     const light = statusLight(i % 7 === 0 ? 0xff3b26 : 0x8fc7cd, 1.8);
@@ -70,6 +102,6 @@ export function buildDeploymentBelt(materials) {
       { id: 'airlock', object: control, action: 'open-airlock', label: '解除外環氣密鎖', maxDistance: 3.5, priority: 3, enabled: false },
       { id: 'fracture', object: fracture, action: 'enter-fracture', label: '踏入裂縫', maxDistance: 5.5, priority: 4, enabled: false },
     ],
-    handles: { airlock, door, exterior, stars, fracture, arc },
+    handles: { airlock, door, exterior, hullStrips, stars, fracture, arc },
   };
 }

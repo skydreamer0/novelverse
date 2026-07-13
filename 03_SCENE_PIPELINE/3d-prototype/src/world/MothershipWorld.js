@@ -6,6 +6,13 @@ import { buildBlackMarket } from './buildBlackMarket.js';
 import { buildDeploymentBelt } from './buildDeploymentBelt.js';
 
 export const WORLD_MANIFEST = Object.freeze({
+  maintenanceClearance: 4,
+  ribPlane: 'xy',
+  exteriorHullStrips: 9,
+  exteriorHullSeams: 9,
+  exteriorFillLights: 2,
+  exteriorFillIntensity: 800,
+  airlockPlane: 'xy',
   zones: [
     { id: 'maintenance', z: 0 },
     { id: 'terminal', z: -38 },

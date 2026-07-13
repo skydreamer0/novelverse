@@ -16,6 +16,19 @@ test('world carries mothership identity cues instead of generic debris', () => {
   }
 });
 
+test('exterior reveal is dominated by a readable curved hull', () => {
+  assert.equal(WORLD_MANIFEST.exteriorHullStrips >= 9, true);
+  assert.equal(WORLD_MANIFEST.exteriorHullSeams >= 9, true);
+  assert.equal(WORLD_MANIFEST.exteriorFillLights >= 2, true);
+  assert.equal(WORLD_MANIFEST.exteriorFillIntensity >= 600, true);
+  assert.equal(WORLD_MANIFEST.airlockPlane, 'xy');
+});
+
+test('maintenance pipe jungle preserves a readable player aisle', () => {
+  assert.equal(WORLD_MANIFEST.maintenanceClearance >= 3.6, true);
+  assert.equal(WORLD_MANIFEST.ribPlane, 'xy');
+});
+
 test('world exposes every required chapter interaction', () => {
   const actions = new Set(WORLD_MANIFEST.interactions.map((item) => item.action));
   for (const action of ['locate-short', 'secure-joint', 'pull-valve', 'scan-wristband', 'choose-bargain', 'open-airlock', 'enter-fracture']) {

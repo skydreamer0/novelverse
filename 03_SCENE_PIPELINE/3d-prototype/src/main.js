@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { MothershipWorld } from './world/MothershipWorld.js';
-import { FirstPersonController } from './core/FirstPersonController.js';
+import { FirstPersonController, shouldEnableMovement } from './core/FirstPersonController.js';
 import { InteractionSystem } from './core/InteractionSystem.js';
 import { PrologueState } from './core/PrologueState.js';
 import { PrologueDirector } from './core/PrologueDirector.js';
 import { UIManager } from './UIManager.js';
 import { AudioDirector } from './core/AudioDirector.js';
 import { QualityManager } from './core/QualityManager.js';
+import { applyQaScene } from './dev/QaScene.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x070a0d);
@@ -31,8 +32,28 @@ scene.add(key);
 const world = new MothershipWorld(scene);
 const controller = new FirstPersonController(camera, renderer.domElement);
 const audio = new AudioDirector();
+let fallbackActive = false;
+let hasStarted = false;
+
+function enableFallbackControl() {
+  fallbackActive = true;
+  controller.enableFallbackLook(true);
+  document.getElementById('instructions').style.display = 'none';
+  ui?.showSubtitle('滑鼠鎖定不可用：按住畫面拖曳視角，WASD 移動。');
+}
+
+function requestControl() {
+  audio.activate();
+  try {
+    const request = renderer.domElement.requestPointerLock();
+    request?.catch?.(enableFallbackControl);
+  } catch {
+    enableFallbackControl();
+  }
+}
+
 const ui = new UIManager({
-  onResume: () => renderer.domElement.requestPointerLock(),
+  onResume: requestControl,
   onMute: (muted) => audio.setMuted(muted),
 });
 const state = new PrologueState();
@@ -44,20 +65,30 @@ const interaction = new InteractionSystem(camera, {
 interaction.setTargets(world.getInteractables());
 
 const instructions = document.getElementById('instructions');
-let hasStarted = false;
 document.getElementById('start-button').addEventListener('click', () => {
   hasStarted = true;
-  audio.activate();
-  renderer.domElement.requestPointerLock();
+  requestControl();
 });
 document.addEventListener('pointerlockchange', () => {
   const locked = document.pointerLockElement === renderer.domElement;
-  instructions.style.display = locked || ui.isModalOpen() || ui.isEnding() ? 'none' : 'grid';
+  if (locked) {
+    fallbackActive = false;
+    controller.enableFallbackLook(false);
+  }
+  instructions.style.display = locked || fallbackActive || ui.isModalOpen() || ui.isEnding() ? 'none' : 'grid';
   if (!locked && hasStarted && !ui.isModalOpen() && !ui.isEnding()) {
     instructions.querySelector('.premise').textContent = '遊戲已暫停。點擊下方按鈕返回第九段。';
     document.getElementById('start-button').querySelector('span').textContent = '返回艙底';
   }
 });
+
+if (import.meta.env.DEV) {
+  const qaScene = new URLSearchParams(location.search).get('qa');
+  if (qaScene && applyQaScene(qaScene, { director, controller, ui })) {
+    hasStarted = true;
+    fallbackActive = !ui.isModalOpen() && !ui.isEnding();
+  }
+}
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
@@ -69,7 +100,13 @@ const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.05);
-  controller.update(delta, document.pointerLockElement === renderer.domElement);
+  const canMove = shouldEnableMovement({
+    locked: document.pointerLockElement === renderer.domElement,
+    fallbackActive,
+    modalOpen: ui.isModalOpen(),
+    ending: ui.isEnding(),
+  });
+  controller.update(delta, canMove);
   interaction.update();
   world.update(delta);
   renderer.render(scene, camera);

@@ -11,11 +11,12 @@ export function buildMaintenanceBay(materials) {
   abyss.position.set(0, -9.3, 0);
   root.add(abyss);
 
-  for (let i = 0; i < 12; i += 1) {
+  const pipeLanes = [-4.35, -3.7, -3.05, -2.45, 2.45, 3.05, 3.7, 4.35];
+  for (let i = 0; i < 16; i += 1) {
     const radius = i % 3 === 0 ? 0.38 : 0.18;
     const pipe = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 24, 10), i % 2 ? materials.pipe : materials.pipeCold);
     pipe.rotation.x = Math.PI / 2;
-    pipe.position.set(-3.8 + (i % 6) * 1.5, 1.1 + Math.floor(i / 6) * 2.2, -1);
+    pipe.position.set(pipeLanes[i % pipeLanes.length], 1.05 + Math.floor(i / pipeLanes.length) * 2.45, -1);
     root.add(pipe);
   }
 
