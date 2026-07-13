@@ -1,7 +1,7 @@
 # Chapter 1 Mothership Prologue QA
 
-> Date: 2026-07-13  
-> Browser: Codex in-app browser  
+> Date: 2026-07-13
+> Browser: Codex in-app browser
 > Runtime: Vite development server at `http://127.0.0.1:4173/`
 
 ## Automated checks
@@ -70,4 +70,3 @@
 - Geometry and characters remain procedural proxies; authored GLB character animation is outside this vertical slice.
 - The fracture uses layered geometry and emissive animation rather than a ray-marched distortion shader.
 - Vite reports the normal Three.js single-chunk size warning; runtime loading succeeds and the warning does not block the prototype.
-
