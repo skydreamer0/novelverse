@@ -1,80 +1,48 @@
 import * as THREE from 'three';
-import { Player } from './Player.js';
 import { World } from './World.js';
-import { UIManager } from './UIManager.js';
-import { GameManager } from './GameManager.js';
-import { Enemies } from './Enemies.js';
+import { FirstPersonController } from './core/FirstPersonController.js';
+import { InteractionSystem } from './core/InteractionSystem.js';
 
-// Setup Scene, Camera, Renderer
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0a1a);
-// Deep purple-black fog for the Abyss
-scene.fog = new THREE.FogExp2(0x1a0a2a, 0.02);
+scene.background = new THREE.Color(0x070a0d);
+scene.fog = new THREE.FogExp2(0x10151a, 0.018);
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.08, 800);
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
-// Lighting
-const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Soft white light
-scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0x666699, 1.5); // Bluish light from Ark ship
-dirLight.position.set(50, 100, 50);
-dirLight.castShadow = true;
-scene.add(dirLight);
+scene.add(new THREE.HemisphereLight(0x8090a0, 0x050608, 0.65));
+const key = new THREE.DirectionalLight(0x9eb4c6, 1.1);
+key.position.set(20, 35, 15);
+scene.add(key);
 
-// Core Modules
-const uiManager = new UIManager();
-const player = new Player(camera, scene);
 const world = new World(scene);
-const enemies = new Enemies(scene);
-const gameManager = new GameManager(player, world, enemies, uiManager);
+const controller = new FirstPersonController(camera, renderer.domElement);
+const interaction = new InteractionSystem(camera);
+interaction.setTargets([]);
 
-// Handle Window Resize
-window.addEventListener('resize', onWindowResize, false);
-function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-// Custom Pointer Lock for Third Person
-let isLocked = false;
 const instructions = document.getElementById('instructions');
-
-instructions.addEventListener('click', () => {
-  document.body.requestPointerLock();
-});
-
+instructions.addEventListener('click', () => renderer.domElement.requestPointerLock());
 document.addEventListener('pointerlockchange', () => {
-  if (document.pointerLockElement === document.body) {
-    isLocked = true;
-    instructions.style.display = 'none';
-  } else {
-    isLocked = false;
-    if (!gameManager.isGameOver) {
-      instructions.style.display = 'flex';
-    }
-  }
+  instructions.style.display = document.pointerLockElement === renderer.domElement ? 'none' : 'flex';
 });
 
-// Game Loop
-const clock = new THREE.Clock();
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
 
+const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
-
-  const delta = clock.getDelta();
-
-  if (isLocked && !gameManager.isGameOver) {
-    player.update(delta); // Third person update
-    enemies.update(delta, player.getPosition());
-    gameManager.update(delta);
-  }
-
+  const delta = Math.min(clock.getDelta(), 0.05);
+  controller.update(delta, document.pointerLockElement === renderer.domElement);
+  interaction.update();
   renderer.render(scene, camera);
 }
-
 animate();
