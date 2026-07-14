@@ -19,6 +19,8 @@ export class MaintenanceChallenge {
     this.weldHeat = 0;
     this.weldProgress = 0;
     this.valveProgress = 0;
+    this.valveStrain = 0;
+    this.signalStrength = 0;
     this.excludedCables = new Set();
     this.lastSoftFailure = null;
     this.failureNoticeRemaining = 0;
@@ -42,11 +44,31 @@ export class MaintenanceChallenge {
     return 0.5 + Math.sin(this.elapsed * 2.15) * 0.5;
   }
 
+  get valveSafeThreshold() {
+    return 0.62 + this.assistLevel * 0.08;
+  }
+
+  updateProbeSignal(id, distance) {
+    if (this.phase !== MAINTENANCE_PHASES.LOCATE || typeof id !== 'string' || !id) {
+      this.signalStrength = 0;
+      return this.signalStrength;
+    }
+
+    const range = Number.isFinite(distance) ? clamp(distance, 0, 3.2) : 3.2;
+    const proximity = 1 - range / 4;
+    const signature = [...id].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 3;
+    this.signalStrength = id === this.targetCable
+      ? clamp(0.68 + proximity * 0.32, 0, 1)
+      : clamp(0.12 + signature * 0.07 + proximity * 0.14, 0, 0.48);
+    return this.signalStrength;
+  }
+
   probeCable(id) {
     if (this.phase !== MAINTENANCE_PHASES.LOCATE) return this.#reject('wrong-phase');
     if (typeof id !== 'string' || !id) return this.#reject('invalid-cable');
     if (id === this.targetCable) {
       this.phase = MAINTENANCE_PHASES.WELD;
+      this.signalStrength = 1;
       this.lastSoftFailure = null;
       this.failureNoticeRemaining = 0;
       return { ok: true, phase: this.phase, state: this.snapshot() };
@@ -88,6 +110,9 @@ export class MaintenanceChallenge {
       safeWindow: this.safeWindow,
       valveProgress: this.valveProgress,
       valveResistance: this.valveResistance,
+      valveSafeThreshold: this.valveSafeThreshold,
+      valveStrain: this.valveStrain,
+      signalStrength: this.signalStrength,
       repairQuality: this.repairQuality,
       lastSoftFailure: this.lastSoftFailure,
       excludedCables: Object.freeze([...this.excludedCables]),
@@ -126,16 +151,23 @@ export class MaintenanceChallenge {
     const pulling = input.pulling === true;
     const braced = input.braced === true;
     const resistance = this.valveResistance;
+    const safeToPull = resistance <= this.valveSafeThreshold;
 
-    if (pulling && !braced && resistance > 0.82 && this.slipCooldown <= 0) {
-      this.slipCooldown = 0.8;
-      this.valveProgress = Math.max(0, this.valveProgress - 0.08);
-      return this.#softFail('valve-slip', { oxygen: 2, legLoad: 6 });
-    }
-
-    if (pulling) {
+    if (pulling && safeToPull) {
       const rate = braced ? 0.0105 : 0.0062;
       this.valveProgress = clamp(this.valveProgress + dt * rate * (1.15 - resistance * 0.2), 0, 1);
+      this.valveStrain = Math.max(0, this.valveStrain - dt * 0.75);
+    } else if (pulling) {
+      this.valveStrain = clamp(this.valveStrain + dt * (braced ? 1.05 : 1.65), 0, 1);
+    } else {
+      this.valveStrain = Math.max(0, this.valveStrain - dt * 0.45);
+    }
+
+    if (this.valveStrain >= 1 && this.slipCooldown <= 0) {
+      this.slipCooldown = 0.8;
+      this.valveStrain = 0.2;
+      this.valveProgress = Math.max(0, this.valveProgress - (braced ? 0.055 : 0.08));
+      return this.#softFail('valve-slip', { oxygen: 2, legLoad: braced ? 4 : 6 });
     }
 
     if (this.valveProgress >= 1) {

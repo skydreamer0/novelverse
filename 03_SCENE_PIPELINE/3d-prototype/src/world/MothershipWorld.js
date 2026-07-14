@@ -60,6 +60,7 @@ export class MothershipWorld {
     this.maintenanceCascadeElapsed = 0;
     this.powerRestoreTarget = 0;
     this.revealSnapshot = null;
+    this.reducedMotion = reducedMotion === true;
     this.interiorFogDensity = this.scene.fog?.density ?? 0.018;
 
     this.maintenance = this.#add(buildMaintenanceBay(this.materials));
@@ -120,13 +121,15 @@ export class MothershipWorld {
       fog.position.z = -0.65 - snapshot.vacuumMix * (1.5 + index * 0.55);
     });
     handles.warningLights.forEach((light, index) => {
-      const warningPulse = 0.35 + Math.max(0, Math.sin(snapshot.elapsed * 8 - index * 0.55)) * 2.8;
+      const warningPulse = this.reducedMotion
+        ? 1.1
+        : 0.35 + Math.max(0, Math.sin(snapshot.elapsed * 8 - index * 0.55)) * 2.8;
       light.material.emissiveIntensity = snapshot.doorOpen < 1 ? warningPulse : 0.18;
     });
 
     const litCount = Math.floor(snapshot.d9PowerProgress * handles.d9PowerBand.length);
     handles.d9PowerBand.forEach((light, index) => {
-      const unstable = snapshot.powerStability < 0.8
+      const unstable = snapshot.powerStability < 0.8 && !this.reducedMotion
         ? Math.max(0.08, Math.sin(snapshot.elapsed * (9 + index * 0.17) - index) * 0.5 + 0.5)
         : 1;
       light.material.emissiveIntensity = index < litCount ? (1.4 + snapshot.powerStability * 2.1) * unstable : 0.025;
@@ -146,7 +149,8 @@ export class MothershipWorld {
   }
 
   setReducedMotion(reducedMotion) {
-    setFractureReducedMotion(this.deployment.handles.fractureWound, reducedMotion);
+    this.reducedMotion = reducedMotion === true;
+    setFractureReducedMotion(this.deployment.handles.fractureWound, this.reducedMotion);
   }
 
   applyMaintenance(snapshot) {
@@ -187,28 +191,35 @@ export class MothershipWorld {
     });
     this.maintenance.handles.fogPlanes.forEach((fog, index) => {
       fog.material.opacity = this.maintenanceFog * (0.08 + index * 0.012);
-      fog.position.y += delta * (0.18 + index * 0.01);
+      if (!this.reducedMotion) fog.position.y += delta * (0.18 + index * 0.01);
       if (fog.position.y > 4.2) fog.position.y = 0.45;
     });
     this.maintenance.handles.fanBlades.forEach((fan, index) => {
       const running = this.powerRestoreTarget > index % 3 ? 1 : 0.08;
-      fan.rotation.z += delta * running * (1.2 + index * 0.15);
+      if (!this.reducedMotion) fan.rotation.z += delta * running * (1.2 + index * 0.15);
     });
-    this.deployment.handles.fracture.rotation.z = Math.sin(this.elapsed * 2.2) * 0.025;
-    this.deployment.handles.stars.position.x = Math.sin(this.elapsed * 0.025) * 0.7;
-    this.deployment.handles.serviceTrain.position.z = -202 + (this.elapsed * 2.35) % 66;
+    this.deployment.handles.fracture.rotation.z = this.reducedMotion ? 0 : Math.sin(this.elapsed * 2.2) * 0.025;
+    this.deployment.handles.stars.position.x = this.reducedMotion ? 0 : Math.sin(this.elapsed * 0.025) * 0.7;
+    if (!this.reducedMotion) this.deployment.handles.serviceTrain.position.z = -202 + (this.elapsed * 2.35) % 66;
     this.deployment.handles.maintenancePods.forEach((pod, index) => {
       if (pod.userData.baseY === undefined) pod.userData.baseY = pod.position.y;
+      if (this.reducedMotion) return;
       pod.position.y = pod.userData.baseY + Math.sin(this.elapsed * (0.42 + index * 0.06) + index) * 0.75;
       pod.position.x += Math.sin(this.elapsed * 0.31 + index) * delta * 0.18;
       pod.rotation.y = Math.sin(this.elapsed * 0.24 + index) * 0.32;
     });
     this.deployment.handles.navigationLights.forEach((light, index) => {
-      light.material.emissiveIntensity = 0.72 + Math.max(0, Math.sin(this.elapsed * 3.2 - index * 0.7)) * 1.5;
+      light.material.emissiveIntensity = this.reducedMotion
+        ? 1.1
+        : 0.72 + Math.max(0, Math.sin(this.elapsed * 3.2 - index * 0.7)) * 1.5;
     });
-    this.maintenance.root.position.x = Math.sin(this.elapsed * 0.7) * 0.003 + Math.sin(this.elapsed * 31) * this.shake * 0.012;
+    this.maintenance.root.position.x = this.reducedMotion
+      ? 0
+      : Math.sin(this.elapsed * 0.7) * 0.003 + Math.sin(this.elapsed * 31) * this.shake * 0.012;
     this.maintenance.handles.sparkAnchors.forEach((spark, index) => {
-      spark.material.emissiveIntensity = 0.5 + Math.max(0, Math.sin(this.elapsed * (7 + index))) * (index === 2 ? 4 : 1.2);
+      spark.material.emissiveIntensity = this.reducedMotion
+        ? 0.8
+        : 0.5 + Math.max(0, Math.sin(this.elapsed * (7 + index))) * 1.2;
     });
   }
 }

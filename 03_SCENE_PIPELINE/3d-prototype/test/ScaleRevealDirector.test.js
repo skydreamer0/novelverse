@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ScaleRevealDirector, REVEAL_PHASES } from '../src/core/ScaleRevealDirector.js';
+import { ScaleRevealDirector, REVEAL_PHASES, shouldTickReveal } from '../src/core/ScaleRevealDirector.js';
 
 test('reveal begins sealed and preserves repair quality', () => {
   const reveal = new ScaleRevealDirector();
@@ -65,4 +65,13 @@ test('invalid or suspended deltas never skip reveal beats', () => {
 
   assert.deepEqual(reveal.snapshot(), before);
   assert.equal(reveal.snapshot().powerStability, 1);
+});
+
+test('reveal pauses when the page, overlay, or controls suspend play', () => {
+  const ready = { active: true, hidden: false, modalOpen: false, controlsAvailable: true, delta: 0.05 };
+  assert.equal(shouldTickReveal(ready), true);
+  assert.equal(shouldTickReveal({ ...ready, hidden: true }), false);
+  assert.equal(shouldTickReveal({ ...ready, modalOpen: true }), false);
+  assert.equal(shouldTickReveal({ ...ready, controlsAvailable: false }), false);
+  assert.equal(shouldTickReveal({ ...ready, delta: 0.5 }), false);
 });

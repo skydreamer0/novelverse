@@ -38,6 +38,10 @@ export class InteractionSystem {
 
   update() {
     const enabled = this.targets.filter((target) => target.enabled !== false && target.object?.visible !== false);
+    this.raycaster.far = Math.max(
+      5,
+      ...enabled.map((target) => Number.isFinite(target.maxDistance) ? target.maxDistance : 0),
+    );
     this.raycaster.setFromCamera({ x: 0, y: 0 }, this.camera);
     const roots = enabled.map((target) => target.object);
     const hits = this.raycaster.intersectObjects(roots, true);

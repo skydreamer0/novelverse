@@ -40,6 +40,18 @@ test('correct cable advances to a sustained weld', () => {
   weldToValve(challenge);
 });
 
+test('probe signal identifies the live cable without a visual giveaway', () => {
+  const challenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
+
+  const wrongSignal = challenge.updateProbeSignal('cable-a', 1.5);
+  const liveSignal = challenge.updateProbeSignal('cable-c', 1.5);
+
+  assert.ok(liveSignal > wrongSignal);
+  assert.ok(liveSignal >= 0.7);
+  assert.equal(challenge.updateProbeSignal(null, 1.5), 0);
+  assert.equal(challenge.snapshot().signalStrength, 0);
+});
+
 test('active challenge consumes time and oxygen without becoming lethal', () => {
   const challenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
 
@@ -84,13 +96,41 @@ test('unbraced pulling at a resistance peak slips without resetting the phase', 
   assert.ok(challenge.legLoad > before.legLoad);
 });
 
+test('holding through a resistance peak strains even a braced valve pull', () => {
+  const challenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
+  challenge.probeCable('cable-c');
+  weldToValve(challenge);
+
+  let slip = null;
+  for (let frame = 0; frame < 100 && !slip; frame += 1) {
+    const result = challenge.update(0.1, { pulling: true, braced: true });
+    if (result.softFailure === 'valve-slip') slip = result;
+  }
+
+  assert.equal(slip?.softFailure, 'valve-slip');
+  assert.equal(challenge.phase, MAINTENANCE_PHASES.VALVE);
+});
+
+test('assistance widens the safe pressure interval after recoverable mistakes', () => {
+  const challenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
+  const initialThreshold = challenge.valveSafeThreshold;
+
+  challenge.probeCable('cable-a');
+  challenge.probeCable('cable-b');
+
+  assert.ok(challenge.valveSafeThreshold > initialThreshold);
+});
+
 test('braced valve work completes with a graded serializable result', () => {
   const challenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
   challenge.probeCable('cable-c');
   weldToValve(challenge);
 
-  for (let frame = 0; frame < 1200 && !challenge.complete; frame += 1) {
-    challenge.update(0.1, { pulling: true, braced: true });
+  for (let frame = 0; frame < 1800 && !challenge.complete; frame += 1) {
+    challenge.update(0.1, {
+      pulling: challenge.valveResistance <= challenge.valveSafeThreshold,
+      braced: true,
+    });
   }
 
   const snapshot = challenge.snapshot();
@@ -110,7 +150,10 @@ test('ideal repair pacing anchors the playable loop at three to five minutes', (
     challenge.update(0.1, { engaged: true, alignment: challenge.weldTarget });
   }
   for (let frame = 0; frame < 1800 && !challenge.complete; frame += 1) {
-    challenge.update(0.1, { pulling: true, braced: true });
+    challenge.update(0.1, {
+      pulling: challenge.valveResistance <= challenge.valveSafeThreshold,
+      braced: true,
+    });
   }
 
   const result = challenge.snapshot();
@@ -132,7 +175,10 @@ test('mistakes produce a worse but still playable survival result', () => {
       challenge.update(0.1, { engaged: true, alignment: challenge.weldTarget });
     }
     for (let frame = 0; frame < 1800 && !challenge.complete; frame += 1) {
-      challenge.update(0.1, { pulling: true, braced: true });
+      challenge.update(0.1, {
+        pulling: challenge.valveResistance <= challenge.valveSafeThreshold,
+        braced: true,
+      });
     }
   }
 

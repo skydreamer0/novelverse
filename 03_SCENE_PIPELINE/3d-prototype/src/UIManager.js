@@ -38,9 +38,11 @@ export const UI_COPY = Object.freeze({
     instructions: {
       locate: '對準候選線路，按 E 探測電纜。',
       weld: 'A／D 調整輸出，按住空白鍵焊接。',
-      valve: '按住 Shift 穩住義腿，再按住空白鍵施力。',
+      valve: '觀察壓力錶；低壓時按住 Shift 與空白鍵施力。',
       complete: '供電正沿第九段逐區恢復。',
     },
+    valvePull: '壓力進入谷值：按住 Shift 與空白鍵，現在施力。',
+    valveHold: '壓力正在攀升：放開空白鍵，穩住義腿等待谷值。',
     recovery: '斷路器復歸中；保持呼吸，重新確認線路。',
     assistance: '腕環已放寬安全窗；保持節奏，失誤不會重置整段。',
   },
@@ -126,7 +128,12 @@ export class UIManager {
   renderMaintenance(state) {
     const phase = state.phase ?? 'locate';
     this.maintenancePhase.textContent = UI_COPY.maintenance.phases[phase] ?? UI_COPY.maintenance.phases.locate;
-    this.maintenanceInstruction.textContent = UI_COPY.maintenance.instructions[phase] ?? '';
+    const valveInstruction = (state.valveResistance ?? 1) <= (state.valveSafeThreshold ?? 0)
+      ? UI_COPY.maintenance.valvePull
+      : UI_COPY.maintenance.valveHold;
+    this.maintenanceInstruction.textContent = phase === 'valve'
+      ? valveInstruction
+      : UI_COPY.maintenance.instructions[phase] ?? '';
     this.maintenanceRecovery.hidden = !state.lastSoftFailure;
     this.maintenanceRecovery.textContent = state.assistLevel > 0
       ? UI_COPY.maintenance.assistance

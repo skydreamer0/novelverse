@@ -5,13 +5,13 @@ import { InteractionSystem } from './core/InteractionSystem.js';
 import { PrologueState } from './core/PrologueState.js';
 import { PrologueDirector } from './core/PrologueDirector.js';
 import { UIManager } from './UIManager.js';
-import { AudioDirector } from './core/AudioDirector.js';
+import { AudioDirector, shouldPauseAudio } from './core/AudioDirector.js';
 import { QualityManager } from './core/QualityManager.js';
 import { applyQaScene } from './dev/QaScene.js';
 import { MaintenanceChallenge } from './core/MaintenanceChallenge.js';
 import { MaintenanceInput } from './core/MaintenanceInput.js';
 import { MaintenanceRuntime } from './core/MaintenanceRuntime.js';
-import { ScaleRevealDirector } from './core/ScaleRevealDirector.js';
+import { ScaleRevealDirector, shouldTickReveal } from './core/ScaleRevealDirector.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x070a0d);
@@ -47,6 +47,7 @@ function enableFallbackControl() {
   controller.enableFallbackLook(true);
   document.getElementById('instructions').style.display = 'none';
   ui?.showSubtitle('滑鼠鎖定不可用：按住畫面拖曳視角，WASD 移動。');
+  syncAudioPause();
 }
 
 function requestControl() {
@@ -78,15 +79,30 @@ const maintenanceRuntime = new MaintenanceRuntime({
   audio,
 });
 const interaction = new InteractionSystem(camera, {
-  onPrompt: (target) => target ? ui.showInteraction(`[E] ${target.label}`) : ui.hideInteraction(),
+  onPrompt: (target) => {
+    maintenanceRuntime.setProbeTarget(target?.action === 'probe-cable' ? target : null);
+    if (target) ui.showInteraction(`[E] ${target.label}`);
+    else ui.hideInteraction();
+  },
   onAction: (action, target) => {
     const result = maintenanceRuntime.handleAction(action, target);
     if (!result.handled) director.handleAction(action, target);
+    syncAudioPause();
   },
 });
 interaction.setTargets(world.getInteractables());
 
 const instructions = document.getElementById('instructions');
+function syncAudioPause() {
+  const controlsAvailable = document.pointerLockElement === renderer.domElement || fallbackActive;
+  void audio.setPaused(shouldPauseAudio({
+    hasStarted,
+    hidden: document.hidden,
+    modalOpen: ui.isModalOpen() || ui.isEnding(),
+    controlsAvailable,
+  }));
+}
+
 document.getElementById('start-button').addEventListener('click', () => {
   hasStarted = true;
   document.body.classList.add('is-game-active');
@@ -104,6 +120,7 @@ document.addEventListener('pointerlockchange', () => {
     instructions.querySelector('.premise').textContent = '遊戲已暫停。點擊下方按鈕返回第九段。';
     document.getElementById('start-button').querySelector('span').textContent = '返回艙底';
   }
+  syncAudioPause();
 });
 
 if (import.meta.env.DEV) {
@@ -120,7 +137,7 @@ addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
-document.addEventListener('visibilitychange', () => audio.setPaused(document.hidden));
+document.addEventListener('visibilitychange', syncAudioPause);
 
 const clock = new THREE.Clock();
 function animate() {
@@ -133,10 +150,17 @@ function animate() {
     controlsAvailable,
   });
   if (revealDirector.active) {
-    const revealSnapshot = revealDirector.update(delta);
+    const revealAdvancing = shouldTickReveal({
+      active: revealDirector.active,
+      hidden: document.hidden,
+      modalOpen: ui.isModalOpen() || ui.isEnding(),
+      controlsAvailable,
+      delta,
+    });
+    const revealSnapshot = revealAdvancing ? revealDirector.update(delta) : revealDirector.snapshot();
     world.applyReveal(revealSnapshot);
-    audio.setRevealState(revealSnapshot);
-    if (revealSnapshot.phase !== previousRevealPhase) {
+    audio.setRevealState(revealAdvancing ? revealSnapshot : {});
+    if (revealAdvancing && revealSnapshot.phase !== previousRevealPhase) {
       const phaseSignal = {
         depressurizing: 'airlock-depressurize',
         'power-echo': 'd9-power-echo',
@@ -145,7 +169,7 @@ function animate() {
       if (phaseSignal) audio.signal(phaseSignal);
       previousRevealPhase = revealSnapshot.phase;
     }
-    if (!spotlightBendSignaled && revealSnapshot.spotlightBend > 0.05) {
+    if (revealAdvancing && !spotlightBendSignaled && revealSnapshot.spotlightBend > 0.05) {
       spotlightBendSignaled = true;
       audio.signal('spotlight-bend');
     }

@@ -63,6 +63,12 @@ export class MaintenanceRuntime {
     return { handled: true, ok: true };
   }
 
+  setProbeTarget(target) {
+    const signal = this.challenge.updateProbeSignal(target?.cableId ?? target?.id, target?.distance);
+    if (this.active && this.challenge.phase === MAINTENANCE_PHASES.LOCATE) this.#sync();
+    return signal;
+  }
+
   update(delta, context) {
     if (!shouldTickMaintenance({ active: this.active, delta, ...context })) return this.challenge.snapshot();
 
@@ -97,8 +103,11 @@ export class MaintenanceRuntime {
     this.#sync();
     if (phase === MAINTENANCE_PHASES.VALVE) return this.challenge.phase === MAINTENANCE_PHASES.VALVE;
 
-    for (let frame = 0; frame < 1400 && !this.challenge.complete; frame += 1) {
-      this.challenge.update(0.1, { pulling: true, braced: true });
+    for (let frame = 0; frame < 2200 && !this.challenge.complete; frame += 1) {
+      this.challenge.update(0.1, {
+        pulling: this.challenge.valveResistance <= this.challenge.valveSafeThreshold,
+        braced: true,
+      });
     }
     this.#sync();
     this.#finishIfComplete();

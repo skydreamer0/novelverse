@@ -19,6 +19,22 @@ const clamp01 = (value) => Math.min(1, Math.max(0, value));
 const progress = (value, start, end) => clamp01((value - start) / (end - start));
 const smooth = (value) => value * value * (3 - 2 * value);
 
+export function shouldTickReveal({
+  active,
+  hidden,
+  modalOpen,
+  controlsAvailable,
+  delta,
+}) {
+  return active === true
+    && hidden !== true
+    && modalOpen !== true
+    && controlsAvailable === true
+    && Number.isFinite(delta)
+    && delta > 0
+    && delta <= 0.12;
+}
+
 export class ScaleRevealDirector {
   constructor() {
     this.active = false;

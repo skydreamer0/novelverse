@@ -31,6 +31,11 @@ export const AUDIO_LOOPS = Object.freeze({
 
 const clamp01 = (value) => Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 
+export function shouldPauseAudio({ hasStarted, hidden, modalOpen, controlsAvailable }) {
+  return hasStarted === true
+    && (hidden === true || modalOpen === true || controlsAvailable !== true);
+}
+
 export class AudioDirector {
   constructor() {
     this.context = null;

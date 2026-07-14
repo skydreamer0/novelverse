@@ -14,7 +14,7 @@ function setup() {
         active: this.active,
         alignment: challenge.weldTarget,
         engaged: true,
-        pulling: true,
+        pulling: challenge.valveResistance <= challenge.valveSafeThreshold,
         braced: true,
       };
     },
@@ -62,6 +62,18 @@ test('wrong probe remains recoverable and updates world feedback', () => {
   assert.ok(calls.some(([type, value]) => type === 'audio' && value === 'wrong-cable'));
   assert.ok(calls.some(([type, value]) => type === 'audio' && value === 'breaker-trip'));
   assert.ok(calls.some(([type]) => type === 'world'));
+});
+
+test('aiming the probe updates the diegetic signal meter', () => {
+  const { calls, challenge, runtime } = setup();
+  runtime.start();
+
+  runtime.setProbeTarget({ cableId: 'cable-c', distance: 1.4 });
+
+  assert.ok(challenge.snapshot().signalStrength >= 0.7);
+  assert.ok(calls.some(([type]) => type === 'ui-render'));
+  runtime.setProbeTarget(null);
+  assert.equal(challenge.snapshot().signalStrength, 0);
 });
 
 test('hidden page does not consume maintenance time', () => {

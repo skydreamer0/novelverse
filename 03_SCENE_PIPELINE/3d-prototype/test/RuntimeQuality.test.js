@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chooseQualityTier, QUALITY_PRESETS } from '../src/core/QualityManager.js';
-import { AUDIO_LOOPS, AUDIO_SIGNALS } from '../src/core/AudioDirector.js';
+import { AUDIO_LOOPS, AUDIO_SIGNALS, shouldPauseAudio } from '../src/core/AudioDirector.js';
 import { createFractureProfile } from '../src/world/FractureMaterial.js';
 
 test('quality selection honors forced tier and conserves weak devices', () => {
@@ -38,4 +38,12 @@ test('causal audio covers maintenance mistakes and every exterior reveal beat', 
     assert.equal(Object.hasOwn(AUDIO_LOOPS, loop), true, `missing controllable loop: ${loop}`);
     assert.ok(AUDIO_LOOPS[loop].gain > 0);
   }
+});
+
+test('audio pauses whenever active play loses control or opens an overlay', () => {
+  assert.equal(shouldPauseAudio({ hasStarted: false, hidden: true, modalOpen: false, controlsAvailable: false }), false);
+  assert.equal(shouldPauseAudio({ hasStarted: true, hidden: true, modalOpen: false, controlsAvailable: true }), true);
+  assert.equal(shouldPauseAudio({ hasStarted: true, hidden: false, modalOpen: true, controlsAvailable: true }), true);
+  assert.equal(shouldPauseAudio({ hasStarted: true, hidden: false, modalOpen: false, controlsAvailable: false }), true);
+  assert.equal(shouldPauseAudio({ hasStarted: true, hidden: false, modalOpen: false, controlsAvailable: true }), false);
 });

@@ -28,14 +28,14 @@ export function buildMaintenanceBay(materials) {
     const cable = new THREE.Group();
     const sheath = new THREE.Mesh(
       new THREE.CylinderGeometry(0.15, 0.15, 3.3, 10),
-      index === 2 ? materials.pipeCold : materials.pipe,
+      materials.pipe,
     );
     sheath.rotation.x = Math.PI / 2;
     const socket = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.22, 12), materials.rust);
     socket.rotation.x = Math.PI / 2;
     socket.position.z = 1.55;
-    const spark = statusLight(index === 2 ? 0xff6f32 : 0xd28b42, index === 2 ? 2.8 : 0.55);
-    spark.scale.setScalar(index === 2 ? 0.8 : 0.5);
+    const spark = statusLight(0xd28b42, 0.55);
+    spark.scale.setScalar(0.5);
     spark.position.set(0.1, 0.08, 1.72);
     cable.add(sheath, socket, spark);
     cable.position.set(-1.55 + index * 1.55, 1.25 + (index % 2) * 0.36, -4.1);
