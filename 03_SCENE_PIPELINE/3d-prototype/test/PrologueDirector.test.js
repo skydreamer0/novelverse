@@ -18,16 +18,35 @@ function setup() {
     setLegLoad: (value) => calls.push(['leg', value]),
     setBounds: (value) => calls.push(['bounds', value.minZ]),
   };
-  return { calls, state, director: new PrologueDirector({ state, world, ui, controller }) };
+  const audio = { signal: (name) => calls.push(['audio', name]) };
+  return { calls, state, director: new PrologueDirector({ state, world, ui, controller, audio }) };
 }
 
-test('repair completion unlocks the terminal corridor', () => {
+test('completed maintenance persists performance and unlocks the terminal corridor', () => {
   const { calls, director, state } = setup();
-  director.handleAction('locate-short');
-  director.handleAction('secure-joint');
-  director.handleAction('pull-valve');
+  const result = director.completeMaintenance({
+    complete: true,
+    oxygen: 71,
+    legLoad: 29,
+    repairQuality: 78,
+    failureCount: 2,
+    elapsed: 204,
+  });
+
+  assert.equal(result.ok, true);
   assert.equal(state.beat, BEATS.TERMINAL);
+  assert.equal(state.repairQuality, 78);
   assert.equal(calls.some(([type, minZ]) => type === 'bounds' && minZ === -58), true);
+  assert.equal(calls.some(([type, signal]) => type === 'audio' && signal === 'maintenance-complete'), true);
+});
+
+test('director refuses an unfinished maintenance challenge', () => {
+  const { director, state } = setup();
+
+  const result = director.completeMaintenance({ complete: false });
+
+  assert.equal(result.ok, false);
+  assert.equal(state.beat, BEATS.MAINTENANCE);
 });
 
 test('terminal scan renders exact debt before opening black market', () => {
