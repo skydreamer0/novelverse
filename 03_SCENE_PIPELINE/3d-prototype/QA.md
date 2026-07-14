@@ -59,11 +59,13 @@ The presets advance through normal chapter actions and the real reveal timeline.
 
 ### Maintenance loop
 
+- A deterministic ideal run completes in 180–300 seconds; exploration and recoverable mistakes extend it within the intended three-to-five-minute band.
 - Locate, sustained weld, braced valve, and complete states render with distinct controls and instrument meters.
 - maintenance-wrong-cable trips the breaker, preserves the locate phase, changes oxygen/load, and shows recovery guidance long enough to read.
 - maintenance-overheat preserves the weld phase and exposes the same recoverable guidance.
 - maintenance-assisted widens the safe window and displays the assistance message after repeated mistakes.
 - maintenance-complete reaches the public-terminal objective through the normal challenge completion path.
+- Mistakes lower oxygen and repair quality and raise prosthetic load without blocking completion.
 - Near-to-far power lights, pressure fog, weld heat, valve angle, fan speed, and camera impulse react to challenge state.
 
 ### Chapter transitions

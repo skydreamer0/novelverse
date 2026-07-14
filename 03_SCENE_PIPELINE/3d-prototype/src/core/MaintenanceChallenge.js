@@ -63,7 +63,7 @@ export class MaintenanceChallenge {
 
     const dt = Math.min(delta, 0.1);
     this.elapsed += dt;
-    this.oxygen = Math.max(18, this.oxygen - dt * 0.14);
+    this.oxygen = Math.max(18, this.oxygen - dt * 0.065);
     this.slipCooldown = Math.max(0, this.slipCooldown - dt);
     this.failureNoticeRemaining = Math.max(0, this.failureNoticeRemaining - dt);
     if (this.failureNoticeRemaining === 0) this.lastSoftFailure = null;
@@ -100,11 +100,11 @@ export class MaintenanceChallenge {
     const aligned = Math.abs(alignment - this.weldTarget) <= this.safeWindow;
 
     if (engaged) {
-      this.weldHeat = clamp(this.weldHeat + dt * (aligned ? 0.032 : 0.1), 0, 1);
-      if (aligned) this.weldProgress = clamp(this.weldProgress + dt * 0.075, 0, 1);
+      this.weldHeat = clamp(this.weldHeat + dt * (aligned ? 0.0065 : 0.1), 0, 1);
+      if (aligned) this.weldProgress = clamp(this.weldProgress + dt * 0.011, 0, 1);
     } else {
       this.weldHeat = clamp(this.weldHeat - dt * 0.12, 0, 1);
-      this.weldProgress = clamp(this.weldProgress - dt * 0.018, 0, 1);
+      this.weldProgress = clamp(this.weldProgress - dt * 0.004, 0, 1);
     }
 
     if (this.weldHeat >= 1) {
@@ -134,7 +134,7 @@ export class MaintenanceChallenge {
     }
 
     if (pulling) {
-      const rate = braced ? 0.065 : 0.038;
+      const rate = braced ? 0.0105 : 0.0062;
       this.valveProgress = clamp(this.valveProgress + dt * rate * (1.15 - resistance * 0.2), 0, 1);
     }
 

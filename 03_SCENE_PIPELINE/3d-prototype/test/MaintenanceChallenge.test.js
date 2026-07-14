@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { MaintenanceChallenge, MAINTENANCE_PHASES } from '../src/core/MaintenanceChallenge.js';
 
 function weldToValve(challenge) {
-  for (let frame = 0; frame < 300 && challenge.phase === MAINTENANCE_PHASES.WELD; frame += 1) {
+  for (let frame = 0; frame < 1200 && challenge.phase === MAINTENANCE_PHASES.WELD; frame += 1) {
     challenge.update(0.1, { engaged: true, alignment: challenge.weldTarget });
   }
   assert.equal(challenge.phase, MAINTENANCE_PHASES.VALVE);
@@ -46,7 +46,8 @@ test('active challenge consumes time and oxygen without becoming lethal', () => 
   for (let frame = 0; frame < 6000; frame += 1) challenge.update(0.1, {});
 
   assert.ok(challenge.elapsed > 500);
-  assert.equal(challenge.oxygen, 18);
+  assert.ok(challenge.oxygen >= 18);
+  assert.ok(challenge.oxygen < 100);
   assert.equal(challenge.phase, MAINTENANCE_PHASES.LOCATE);
 });
 
@@ -88,7 +89,7 @@ test('braced valve work completes with a graded serializable result', () => {
   challenge.probeCable('cable-c');
   weldToValve(challenge);
 
-  for (let frame = 0; frame < 400 && !challenge.complete; frame += 1) {
+  for (let frame = 0; frame < 1200 && !challenge.complete; frame += 1) {
     challenge.update(0.1, { pulling: true, braced: true });
   }
 
@@ -99,6 +100,46 @@ test('braced valve work completes with a graded serializable result', () => {
   assert.ok(snapshot.elapsed > 0);
   assert.doesNotThrow(() => JSON.stringify(snapshot));
   assert.throws(() => { snapshot.oxygen = 0; }, TypeError);
+});
+
+test('ideal repair pacing anchors the playable loop at three to five minutes', () => {
+  const challenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
+  challenge.probeCable('cable-c');
+
+  for (let frame = 0; frame < 1800 && challenge.phase === MAINTENANCE_PHASES.WELD; frame += 1) {
+    challenge.update(0.1, { engaged: true, alignment: challenge.weldTarget });
+  }
+  for (let frame = 0; frame < 1800 && !challenge.complete; frame += 1) {
+    challenge.update(0.1, { pulling: true, braced: true });
+  }
+
+  const result = challenge.snapshot();
+  assert.equal(result.complete, true);
+  assert.ok(result.elapsed >= 180);
+  assert.ok(result.elapsed <= 300);
+  assert.ok(result.oxygen >= 70);
+});
+
+test('mistakes produce a worse but still playable survival result', () => {
+  const ideal = new MaintenanceChallenge({ targetCable: 'cable-c' });
+  const rough = new MaintenanceChallenge({ targetCable: 'cable-c' });
+  rough.probeCable('cable-a');
+  rough.probeCable('cable-b');
+
+  for (const challenge of [ideal, rough]) {
+    challenge.probeCable('cable-c');
+    for (let frame = 0; frame < 1800 && challenge.phase === MAINTENANCE_PHASES.WELD; frame += 1) {
+      challenge.update(0.1, { engaged: true, alignment: challenge.weldTarget });
+    }
+    for (let frame = 0; frame < 1800 && !challenge.complete; frame += 1) {
+      challenge.update(0.1, { pulling: true, braced: true });
+    }
+  }
+
+  assert.equal(rough.complete, true);
+  assert.ok(rough.oxygen < ideal.oxygen);
+  assert.ok(rough.legLoad > ideal.legLoad);
+  assert.ok(rough.repairQuality < ideal.repairQuality);
 });
 
 test('invalid delta and cable input never corrupt challenge state', () => {

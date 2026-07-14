@@ -91,13 +91,13 @@ export class MaintenanceRuntime {
     }
     if (phase === MAINTENANCE_PHASES.WELD) return true;
 
-    for (let frame = 0; frame < 400 && this.challenge.phase === MAINTENANCE_PHASES.WELD; frame += 1) {
+    for (let frame = 0; frame < 1400 && this.challenge.phase === MAINTENANCE_PHASES.WELD; frame += 1) {
       this.challenge.update(0.1, { engaged: true, alignment: this.challenge.weldTarget });
     }
     this.#sync();
     if (phase === MAINTENANCE_PHASES.VALVE) return this.challenge.phase === MAINTENANCE_PHASES.VALVE;
 
-    for (let frame = 0; frame < 500 && !this.challenge.complete; frame += 1) {
+    for (let frame = 0; frame < 1400 && !this.challenge.complete; frame += 1) {
       this.challenge.update(0.1, { pulling: true, braced: true });
     }
     this.#sync();

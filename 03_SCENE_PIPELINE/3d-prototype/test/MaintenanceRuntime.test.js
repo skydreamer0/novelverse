@@ -79,7 +79,7 @@ test('sustained input completes repair and hands result to chapter director', ()
   runtime.start();
   runtime.handleAction('probe-cable', { cableId: 'cable-c' });
 
-  for (let frame = 0; frame < 800 && !challenge.complete; frame += 1) {
+  for (let frame = 0; frame < 2600 && !challenge.complete; frame += 1) {
     runtime.update(0.1, { hidden: false, modalOpen: false, controlsAvailable: true });
   }
 
