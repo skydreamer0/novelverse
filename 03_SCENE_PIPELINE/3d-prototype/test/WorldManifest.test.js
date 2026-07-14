@@ -29,6 +29,14 @@ test('maintenance pipe jungle preserves a readable player aisle', () => {
   assert.equal(WORLD_MANIFEST.ribPlane, 'xy');
 });
 
+test('maintenance bay exposes skill interaction and power-chain cues', () => {
+  assert.equal(WORLD_MANIFEST.maintenance.cableCandidates, 3);
+  assert.deepEqual(WORLD_MANIFEST.maintenance.phases, ['locate', 'weld', 'valve']);
+  assert.ok(WORLD_MANIFEST.maintenance.powerChainSections >= 5);
+  assert.ok(WORLD_MANIFEST.maintenance.softFailureCues.includes('breaker-blackout'));
+  assert.ok(WORLD_MANIFEST.maintenance.softFailureCues.includes('pressure-fog'));
+});
+
 test('world exposes every required chapter interaction', () => {
   const actions = new Set(WORLD_MANIFEST.interactions.map((item) => item.action));
   for (const action of ['locate-short', 'secure-joint', 'pull-valve', 'scan-wristband', 'choose-bargain', 'open-airlock', 'enter-fracture']) {
