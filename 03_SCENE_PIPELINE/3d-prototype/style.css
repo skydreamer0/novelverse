@@ -61,6 +61,18 @@ button:focus-visible { outline: 2px solid var(--fracture); outline-offset: 4px; 
 .interaction { position: absolute; left: 50%; top: calc(50% + 35px); transform: translateX(-50%); padding: 7px 12px; color: #d8e7e8; border: 1px solid rgba(134, 219, 225, .28); background: rgba(5, 11, 13, .78); font-size: 12px; letter-spacing: .08em; }
 .subtitle { position: absolute; left: 50%; bottom: 12vh; width: min(620px, 80vw); transform: translateX(-50%); padding: 14px 22px; border-left: 2px solid var(--oxygen); color: #e1ded3; background: linear-gradient(90deg, rgba(5, 8, 9, .88), rgba(5, 8, 9, .15)); font: 500 15px/1.8 "Noto Serif TC", serif; text-shadow: 0 2px 3px #000; }
 
+.maintenance-tool { position: absolute; left: 50%; bottom: 7vh; width: min(560px, calc(100vw - 40px)); transform: translateX(-50%); padding: 14px 16px; color: #9fc9ca; border: 1px solid rgba(134, 219, 225, .25); border-left: 3px solid var(--oxygen); background: linear-gradient(135deg, rgba(5, 14, 16, .94), rgba(11, 18, 18, .78)); box-shadow: 0 18px 60px #000b, inset 0 0 24px rgba(65, 155, 159, .06); }
+.maintenance-tool header { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 9px; border-bottom: 1px solid var(--line); font: 700 10px Consolas, monospace; letter-spacing: .12em; }
+.maintenance-tool header span { color: #59797c; }
+.maintenance-tool header strong { color: var(--oxygen); }
+.maintenance-tool__gauges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin: 12px 0; }
+.maintenance-tool__gauges div { min-width: 0; }
+.maintenance-tool__gauges span { display: block; margin-bottom: 5px; overflow: hidden; color: #68888b; font-size: 9px; white-space: nowrap; }
+.maintenance-tool__gauges i { --value: 0%; position: relative; display: block; height: 7px; overflow: hidden; border: 1px solid rgba(134, 219, 225, .18); background: #020506; }
+.maintenance-tool__gauges i::after { content: ""; position: absolute; inset: 1px auto 1px 1px; width: var(--value); max-width: calc(100% - 2px); background: linear-gradient(90deg, #527e7f, var(--cyan)); box-shadow: 0 0 8px rgba(134, 219, 225, .45); }
+.maintenance-tool > p { margin: 8px 0 0; color: #d0dad7; font-size: 12px; letter-spacing: .04em; }
+.maintenance-tool__recovery { padding: 7px 9px; color: #fff0e1 !important; border-left: 2px solid var(--audit); background: rgba(255, 75, 62, .1); }
+
 .wristband { position: absolute; right: 26px; bottom: 26px; width: min(350px, calc(100vw - 36px)); padding: 11px; border: 1px solid rgba(134, 219, 225, .2); border-radius: 2px 14px 2px 2px; color: var(--cyan); background: linear-gradient(145deg, rgba(4, 17, 20, .92), rgba(5, 10, 12, .7)); box-shadow: inset 0 0 28px rgba(29, 135, 145, .08), 0 16px 50px #0008; transform: perspective(600px) rotateY(-4deg); transition: opacity .25s, transform .25s; }
 .wristband::before { content: ""; position: absolute; inset: 4px; border: 1px dashed rgba(134, 219, 225, .1); pointer-events: none; }
 .wristband__serial { display: flex; justify-content: space-between; padding: 4px 5px 9px; border-bottom: 1px solid var(--line); font: 700 10px Consolas, monospace; letter-spacing: .12em; }
@@ -119,6 +131,8 @@ button:focus-visible { outline: 2px solid var(--fracture); outline-offset: 4px; 
 html.reduced-motion *, html.reduced-motion *::before, html.reduced-motion *::after { animation: none !important; transition: none !important; }
 html.high-contrast { --line: rgba(220, 250, 255, .6); }
 html.high-contrast .wristband, html.high-contrast .interaction { background: #000; }
+html.high-contrast .maintenance-tool { color: #fff; border-color: #fff; background: #000; }
+html.high-contrast .maintenance-tool__gauges i::after { background: #fff; }
 
 @media (max-width: 720px) {
   .gate { grid-template-columns: 22px 1fr; }
@@ -126,6 +140,8 @@ html.high-contrast .wristband, html.high-contrast .interaction { background: #00
   .gate__warning { display: none; }
   .gate h1 { font-size: 68px; }
   .wristband { right: 12px; bottom: 58px; }
+  .maintenance-tool { bottom: 22vh; width: calc(100vw - 24px); }
+  .maintenance-tool__gauges { grid-template-columns: repeat(2, 1fr); }
   .access-tools { left: 12px; bottom: 12px; }
   .bargain-grid { grid-template-columns: 1fr; }
   .bargain-grid button { min-height: auto; }

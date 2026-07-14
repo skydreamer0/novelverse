@@ -18,6 +18,27 @@ export const UI_COPY = Object.freeze({
     reveal: '第七投放帶／母艦外環',
     complete: '裂縫邊界',
   },
+  maintenance: {
+    phases: {
+      locate: '探測電纜',
+      weld: '固定臨時接頭',
+      valve: '拉下備援閥',
+      complete: '氧循環恢復',
+    },
+    labels: {
+      signal: '探針訊號',
+      heat: '焊接熱度',
+      stability: '接頭穩定',
+      pressure: '管線壓力',
+    },
+    instructions: {
+      locate: '對準候選線路，按 E 探測電纜。',
+      weld: 'A／D 調整輸出，按住空白鍵焊接。',
+      valve: '按住 Shift 穩住義腿，再按住空白鍵施力。',
+      complete: '供電正沿第九段逐區恢復。',
+    },
+    recovery: '斷路器復歸中；保持呼吸，重新確認線路。',
+  },
 });
 
 export class UIManager {
@@ -38,6 +59,17 @@ export class UIManager {
     this.terminal = document.getElementById('terminal-overlay');
     this.bargain = document.getElementById('bargain-overlay');
     this.ending = document.getElementById('end-screen');
+    this.crosshair = document.getElementById('crosshair');
+    this.maintenanceTool = document.getElementById('maintenance-tool');
+    this.maintenancePhase = document.getElementById('maintenance-phase');
+    this.maintenanceInstruction = document.getElementById('maintenance-instruction');
+    this.maintenanceRecovery = document.getElementById('maintenance-recovery');
+    this.maintenanceValues = {
+      signal: document.getElementById('maintenance-signal'),
+      heat: document.getElementById('maintenance-heat'),
+      stability: document.getElementById('maintenance-stability'),
+      pressure: document.getElementById('maintenance-pressure'),
+    };
     this.subtitleTimer = null;
 
     document.addEventListener('keydown', (event) => {
@@ -73,6 +105,32 @@ export class UIManager {
   showInteraction(text) {
     this.prompt.textContent = text;
     this.prompt.hidden = false;
+  }
+
+  setMaintenanceActive(active) {
+    this.maintenanceTool.hidden = !active;
+    this.crosshair.hidden = active;
+    if (active) this.hideInteraction();
+  }
+
+  renderMaintenance(state) {
+    const phase = state.phase ?? 'locate';
+    this.maintenancePhase.textContent = UI_COPY.maintenance.phases[phase] ?? UI_COPY.maintenance.phases.locate;
+    this.maintenanceInstruction.textContent = UI_COPY.maintenance.instructions[phase] ?? '';
+    this.maintenanceRecovery.hidden = !state.lastSoftFailure;
+    this.maintenanceRecovery.textContent = UI_COPY.maintenance.recovery;
+
+    const values = {
+      signal: state.signalStrength ?? (phase === 'locate' ? 0 : 1),
+      heat: state.weldHeat ?? 0,
+      stability: state.weldProgress ?? 0,
+      pressure: state.valveResistance ?? 0,
+    };
+    for (const [key, value] of Object.entries(values)) {
+      const clamped = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
+      this.maintenanceValues[key].style.setProperty('--value', `${Math.round(clamped * 100)}%`);
+      this.maintenanceValues[key].setAttribute('aria-valuenow', String(Math.round(clamped * 100)));
+    }
   }
 
   hideInteraction() {

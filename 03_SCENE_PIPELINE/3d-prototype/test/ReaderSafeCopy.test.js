@@ -15,3 +15,10 @@ test('interface copy excludes retired prototype and internal process language', 
     assert.equal(copy.includes(forbidden), false, `forbidden copy: ${forbidden}`);
   }
 });
+
+test('maintenance instrument copy explains every skill action and recovery', () => {
+  const copy = JSON.stringify(UI_COPY);
+  for (const value of ['探測電纜', '焊接熱度', '接頭穩定', '穩住義腿', '管線壓力', '斷路器復歸']) {
+    assert.equal(copy.includes(value), true, `missing maintenance copy: ${value}`);
+  }
+});
