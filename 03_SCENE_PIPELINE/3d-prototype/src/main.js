@@ -39,6 +39,8 @@ const controller = new FirstPersonController(camera, renderer.domElement);
 const audio = new AudioDirector();
 let fallbackActive = false;
 let hasStarted = false;
+let previousRevealPhase = null;
+let spotlightBendSignaled = false;
 
 function enableFallbackControl() {
   fallbackActive = true;
@@ -60,6 +62,7 @@ function requestControl() {
 const ui = new UIManager({
   onResume: requestControl,
   onMute: (muted) => audio.setMuted(muted),
+  onMotion: (enabled) => world.setReducedMotion(enabled),
 });
 const state = new PrologueState();
 const revealDirector = new ScaleRevealDirector();
@@ -86,6 +89,7 @@ interaction.setTargets(world.getInteractables());
 const instructions = document.getElementById('instructions');
 document.getElementById('start-button').addEventListener('click', () => {
   hasStarted = true;
+  document.body.classList.add('is-game-active');
   maintenanceRuntime.start();
   requestControl();
 });
@@ -104,8 +108,9 @@ document.addEventListener('pointerlockchange', () => {
 
 if (import.meta.env.DEV) {
   const qaScene = new URLSearchParams(location.search).get('qa');
-  if (qaScene && applyQaScene(qaScene, { director, controller, ui, maintenanceRuntime })) {
+  if (qaScene && applyQaScene(qaScene, { director, controller, ui, maintenanceRuntime, revealDirector })) {
     hasStarted = true;
+    document.body.classList.add('is-game-active');
     fallbackActive = !ui.isModalOpen() && !ui.isEnding();
   }
 }
@@ -115,6 +120,7 @@ addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
+document.addEventListener('visibilitychange', () => audio.setPaused(document.hidden));
 
 const clock = new THREE.Clock();
 function animate() {
@@ -129,6 +135,20 @@ function animate() {
   if (revealDirector.active) {
     const revealSnapshot = revealDirector.update(delta);
     world.applyReveal(revealSnapshot);
+    audio.setRevealState(revealSnapshot);
+    if (revealSnapshot.phase !== previousRevealPhase) {
+      const phaseSignal = {
+        depressurizing: 'airlock-depressurize',
+        'power-echo': 'd9-power-echo',
+        'fracture-active': 'fracture-activate',
+      }[revealSnapshot.phase];
+      if (phaseSignal) audio.signal(phaseSignal);
+      previousRevealPhase = revealSnapshot.phase;
+    }
+    if (!spotlightBendSignaled && revealSnapshot.spotlightBend > 0.05) {
+      spotlightBendSignaled = true;
+      audio.signal('spotlight-bend');
+    }
     controller.setBounds({ minZ: revealSnapshot.traversalOpen ? -205 : -142 });
   }
   const canMove = shouldEnableMovement({

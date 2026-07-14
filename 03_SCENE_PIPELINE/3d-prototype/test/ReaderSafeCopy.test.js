@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { UI_COPY } from '../src/UIManager.js';
+import { UI_COPY, shouldToggleWristband } from '../src/UIManager.js';
 
 test('interface copy contains exact chapter 1 audit values', () => {
   const copy = JSON.stringify(UI_COPY);
@@ -16,9 +16,18 @@ test('interface copy excludes retired prototype and internal process language', 
   }
 });
 
+test('Tab remains available for keyboard navigation outside active gameplay', () => {
+  assert.equal(shouldToggleWristband({ code: 'Tab', gameActive: false, interactiveTarget: false }), false);
+  assert.equal(shouldToggleWristband({ code: 'Tab', gameActive: true, interactiveTarget: true }), false);
+  assert.equal(shouldToggleWristband({ code: 'Tab', gameActive: true, interactiveTarget: false }), true);
+  assert.equal(shouldToggleWristband({ code: 'KeyQ', gameActive: true, interactiveTarget: false }), false);
+});
+
 test('maintenance instrument copy explains every skill action and recovery', () => {
   const copy = JSON.stringify(UI_COPY);
   for (const value of ['探測電纜', '焊接熱度', '接頭穩定', '穩住義腿', '管線壓力', '斷路器復歸']) {
     assert.equal(copy.includes(value), true, `missing maintenance copy: ${value}`);
   }
+  assert.equal(typeof UI_COPY.maintenance.assistance, 'string');
+  assert.ok(UI_COPY.maintenance.assistance.length >= 12);
 });

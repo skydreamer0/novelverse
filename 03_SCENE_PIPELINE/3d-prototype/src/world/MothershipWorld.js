@@ -6,7 +6,7 @@ import { buildBlackMarket } from './buildBlackMarket.js';
 import { buildDeploymentBelt } from './buildDeploymentBelt.js';
 import { EXTERIOR_QUALITY } from './buildExteriorScaleLayers.js';
 import { deriveMaintenanceFeedback } from './MaintenanceFeedback.js';
-import { updateFractureWound } from './FractureMaterial.js';
+import { setFractureReducedMotion, updateFractureWound } from './FractureMaterial.js';
 
 export const WORLD_MANIFEST = Object.freeze({
   maintenanceClearance: 4,
@@ -60,6 +60,7 @@ export class MothershipWorld {
     this.maintenanceCascadeElapsed = 0;
     this.powerRestoreTarget = 0;
     this.revealSnapshot = null;
+    this.interiorFogDensity = this.scene.fog?.density ?? 0.018;
 
     this.maintenance = this.#add(buildMaintenanceBay(this.materials));
     this.terminal = this.#add(buildTerminalCorridor(this.materials));
@@ -108,6 +109,9 @@ export class MothershipWorld {
 
   applyReveal(snapshot) {
     this.revealSnapshot = snapshot;
+    if (this.scene.fog && 'density' in this.scene.fog) {
+      this.scene.fog.density = THREE.MathUtils.lerp(this.interiorFogDensity, 0.0018, snapshot.vacuumMix);
+    }
     const handles = this.deployment.handles;
     handles.door.position.y = snapshot.doorOpen * 8.6;
     handles.pressureFog.forEach((fog, index) => {
@@ -139,6 +143,10 @@ export class MothershipWorld {
     handles.fracture.scale.setScalar(0.72 + snapshot.fractureIntensity * 0.28);
     const fractureTarget = this.interactables.find((item) => item.id === 'fracture');
     if (fractureTarget) fractureTarget.enabled = snapshot.traversalOpen;
+  }
+
+  setReducedMotion(reducedMotion) {
+    setFractureReducedMotion(this.deployment.handles.fractureWound, reducedMotion);
   }
 
   applyMaintenance(snapshot) {

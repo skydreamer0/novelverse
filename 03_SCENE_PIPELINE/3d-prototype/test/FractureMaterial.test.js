@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FRACTURE_BOUNDS, createFractureProfile } from '../src/world/FractureMaterial.js';
+import {
+  FRACTURE_BOUNDS,
+  buildFractureWound,
+  createFractureProfile,
+  setFractureReducedMotion,
+} from '../src/world/FractureMaterial.js';
 
 test('fracture reads as a vertical depth wound rather than a circular portal', () => {
   const profile = createFractureProfile('high');
@@ -30,4 +35,12 @@ test('reduced motion retains the wound while slowing displacement and flash', ()
   assert.equal(reduced.silhouette, standard.silhouette);
   assert.ok(reduced.displacementSpeed < standard.displacementSpeed);
   assert.ok(reduced.flashContrast < standard.flashContrast);
+});
+
+test('runtime reduced-motion control updates existing shader layers', () => {
+  const fracture = buildFractureWound({ qualityTier: 'high', reducedMotion: false });
+  const before = fracture.handles.core.material.uniforms.uSpeed.value;
+  setFractureReducedMotion(fracture, true);
+  assert.ok(fracture.handles.core.material.uniforms.uSpeed.value < before);
+  assert.equal(fracture.profile.silhouette, 'vertical-wound');
 });

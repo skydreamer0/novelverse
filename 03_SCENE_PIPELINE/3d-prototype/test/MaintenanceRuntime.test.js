@@ -47,7 +47,7 @@ test('probe action preserves cable identity and starts sustained welding', () =>
   assert.equal(result.ok, true);
   assert.equal(challenge.phase, MAINTENANCE_PHASES.WELD);
   assert.equal(runtime.suspendsMovement(), true);
-  assert.ok(calls.some(([type, value]) => type === 'audio' && value === 'probe-confirmed'));
+  assert.ok(calls.some(([type, value]) => type === 'audio' && value === 'probe-pulse'));
 });
 
 test('wrong probe remains recoverable and updates world feedback', () => {
@@ -60,6 +60,7 @@ test('wrong probe remains recoverable and updates world feedback', () => {
   assert.equal(challenge.phase, MAINTENANCE_PHASES.LOCATE);
   assert.equal(runtime.suspendsMovement(), false);
   assert.ok(calls.some(([type, value]) => type === 'audio' && value === 'wrong-cable'));
+  assert.ok(calls.some(([type, value]) => type === 'audio' && value === 'breaker-trip'));
   assert.ok(calls.some(([type]) => type === 'world'));
 });
 
@@ -94,4 +95,21 @@ test('QA phase preparation uses normal challenge transitions', () => {
   assert.equal(runtime.prepareQaPhase('valve'), true);
   assert.equal(challenge.phase, MAINTENANCE_PHASES.VALVE);
   assert.equal(runtime.prepareQaPhase('unknown'), false);
+});
+
+test('QA condition preparation preserves real soft-failure and assistance rules', () => {
+  const wrong = setup();
+  assert.equal(wrong.runtime.prepareQaCondition('wrong-cable'), true);
+  assert.equal(wrong.challenge.lastSoftFailure, 'wrong-cable');
+  assert.equal(wrong.challenge.failureCount, 1);
+
+  const overheated = setup();
+  assert.equal(overheated.runtime.prepareQaCondition('weld-overheat'), true);
+  assert.equal(overheated.challenge.lastSoftFailure, 'weld-overheat');
+  assert.equal(overheated.challenge.phase, MAINTENANCE_PHASES.WELD);
+
+  const assisted = setup();
+  assert.equal(assisted.runtime.prepareQaCondition('assisted'), true);
+  assert.ok(assisted.challenge.assistLevel >= 1);
+  assert.equal(assisted.runtime.prepareQaCondition('unknown'), false);
 });

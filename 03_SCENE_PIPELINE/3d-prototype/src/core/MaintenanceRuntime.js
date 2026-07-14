@@ -46,9 +46,10 @@ export class MaintenanceRuntime {
       const result = this.challenge.probeCable(cableId);
       if (result.ok) {
         this.input.setActive(true);
-        this.audio?.signal?.('probe-confirmed');
+        this.audio?.signal?.('probe-pulse');
       } else if (result.softFailure) {
         this.audio?.signal?.(result.softFailure);
+        if (result.softFailure === 'wrong-cable') this.audio?.signal?.('breaker-trip');
       }
       this.#sync();
       return { ...result, handled: true };
@@ -58,6 +59,7 @@ export class MaintenanceRuntime {
     if (this.challenge.phase !== expected) return { handled: true, ok: false, reason: 'wrong-phase' };
     this.input.setActive(true);
     this.ui.setMaintenanceActive?.(true);
+    if (action === 'start-valve') this.audio?.signal?.('valve-strain');
     return { handled: true, ok: true };
   }
 
@@ -67,7 +69,7 @@ export class MaintenanceRuntime {
     const controls = this.input.update(delta);
     const result = this.challenge.update(delta, controls);
     if (result.softFailure) this.audio?.signal?.(result.softFailure);
-    if (result.phaseChanged) this.audio?.signal?.(`maintenance-${this.challenge.phase}`);
+    if (result.phaseChanged && this.challenge.phase === MAINTENANCE_PHASES.VALVE) this.audio?.signal?.('stable-weld');
     this.#sync();
     this.#finishIfComplete();
     return this.challenge.snapshot();
@@ -103,10 +105,35 @@ export class MaintenanceRuntime {
     return this.challenge.complete;
   }
 
+  prepareQaCondition(condition) {
+    if (!['wrong-cable', 'weld-overheat', 'assisted'].includes(condition)) return false;
+    if (!this.active) this.start();
+    const wrongCables = ['cable-a', 'cable-b', 'cable-c'].filter((id) => id !== this.challenge.targetCable);
+
+    if (condition === 'wrong-cable') {
+      const result = this.handleAction('probe-cable', { cableId: wrongCables[0] });
+      return result.softFailure === 'wrong-cable';
+    }
+
+    if (condition === 'assisted') {
+      for (const cableId of wrongCables.slice(0, 2)) this.handleAction('probe-cable', { cableId });
+      return this.challenge.assistLevel >= 1;
+    }
+
+    this.prepareQaPhase(MAINTENANCE_PHASES.WELD);
+    let result = null;
+    for (let frame = 0; frame < 180 && result?.softFailure !== 'weld-overheat'; frame += 1) {
+      result = this.challenge.update(0.1, { engaged: true, alignment: 1 });
+    }
+    this.#sync();
+    return result?.softFailure === 'weld-overheat';
+  }
+
   #sync() {
     const snapshot = this.challenge.snapshot();
     this.ui.renderMaintenance?.(snapshot);
     this.world.applyMaintenance?.(snapshot);
+    this.audio?.setMaintenanceState?.(snapshot);
   }
 
   #finishIfComplete() {

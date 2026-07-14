@@ -251,3 +251,13 @@ export function updateFractureWound(fracture, { time = 0, intensity = 0, spotlig
   fracture.handles.bentBeam.material.opacity = spotlightBend * 0.32;
   fracture.handles.bentBeam.rotation.z = spotlightBend * 0.035;
 }
+
+export function setFractureReducedMotion(fracture, reducedMotion) {
+  const profile = createFractureProfile(fracture.profile.tier, { reducedMotion });
+  fracture.profile = profile;
+  for (const mesh of [fracture.handles.core, ...fracture.handles.edgeLayers]) {
+    mesh.material.uniforms.uSpeed.value = profile.displacementSpeed;
+    mesh.material.uniforms.uFlashContrast.value = profile.flashContrast;
+  }
+  return profile;
+}

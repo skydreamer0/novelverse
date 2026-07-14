@@ -1,3 +1,7 @@
+export function shouldToggleWristband({ code, gameActive, interactiveTarget }) {
+  return code === 'Tab' && gameActive === true && interactiveTarget !== true;
+}
+
 export const UI_COPY = Object.freeze({
   resident: '居民編號：D9-4417，林燼',
   audit: ['歷史欠額：二十七點', '新增戰備附加稅：九點', '最低生存貢獻需求：四十點', '限期：七十二小時'],
@@ -38,11 +42,12 @@ export const UI_COPY = Object.freeze({
       complete: '供電正沿第九段逐區恢復。',
     },
     recovery: '斷路器復歸中；保持呼吸，重新確認線路。',
+    assistance: '腕環已放寬安全窗；保持節奏，失誤不會重置整段。',
   },
 });
 
 export class UIManager {
-  constructor({ onResume = () => {}, onMute = () => {} } = {}) {
+  constructor({ onResume = () => {}, onMute = () => {}, onMotion = () => {} } = {}) {
     this.onResume = onResume;
     this.onMute = onMute;
     this.prompt = document.getElementById('interaction-prompt');
@@ -73,7 +78,12 @@ export class UIManager {
     this.subtitleTimer = null;
 
     document.addEventListener('keydown', (event) => {
-      if (event.code === 'Tab') {
+      const interactiveTarget = Boolean(event.target?.closest?.('button, a, input, select, textarea, [tabindex]'));
+      if (shouldToggleWristband({
+        code: event.code,
+        gameActive: document.body.classList.contains('is-game-active'),
+        interactiveTarget,
+      })) {
         event.preventDefault();
         this.wristband.classList.toggle('is-collapsed');
       }
@@ -83,7 +93,7 @@ export class UIManager {
       this.onResume();
     });
     this.#bindToggle('contrast-toggle', 'high-contrast');
-    this.#bindToggle('motion-toggle', 'reduced-motion');
+    this.#bindToggle('motion-toggle', 'reduced-motion', onMotion);
     document.getElementById('audio-toggle').addEventListener('click', (event) => {
       const active = event.currentTarget.getAttribute('aria-pressed') !== 'true';
       event.currentTarget.setAttribute('aria-pressed', String(active));
@@ -118,7 +128,9 @@ export class UIManager {
     this.maintenancePhase.textContent = UI_COPY.maintenance.phases[phase] ?? UI_COPY.maintenance.phases.locate;
     this.maintenanceInstruction.textContent = UI_COPY.maintenance.instructions[phase] ?? '';
     this.maintenanceRecovery.hidden = !state.lastSoftFailure;
-    this.maintenanceRecovery.textContent = UI_COPY.maintenance.recovery;
+    this.maintenanceRecovery.textContent = state.assistLevel > 0
+      ? UI_COPY.maintenance.assistance
+      : UI_COPY.maintenance.recovery;
 
     const values = {
       signal: state.signalStrength ?? (phase === 'locate' ? 0 : 1),
@@ -179,11 +191,12 @@ export class UIManager {
     return !this.ending.hidden;
   }
 
-  #bindToggle(id, className) {
+  #bindToggle(id, className, onChange = () => {}) {
     document.getElementById(id).addEventListener('click', (event) => {
       const active = event.currentTarget.getAttribute('aria-pressed') !== 'true';
       event.currentTarget.setAttribute('aria-pressed', String(active));
       document.documentElement.classList.toggle(className, active);
+      onChange(active);
     });
   }
 }

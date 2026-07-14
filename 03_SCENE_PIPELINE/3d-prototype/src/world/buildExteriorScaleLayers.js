@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { addGratedFloor, statusLight } from './materials.js';
 
 export const EXTERIOR_QUALITY = Object.freeze({
-  low: Object.freeze({ hullSections: 7, navigationLights: 18, stars: 260, maintenancePods: 2 }),
-  medium: Object.freeze({ hullSections: 9, navigationLights: 28, stars: 460, maintenancePods: 3 }),
-  high: Object.freeze({ hullSections: 11, navigationLights: 42, stars: 760, maintenancePods: 4 }),
+  low: Object.freeze({ hullSections: 7, navigationLights: 18, stars: 360, maintenancePods: 2 }),
+  medium: Object.freeze({ hullSections: 9, navigationLights: 28, stars: 680, maintenancePods: 3 }),
+  high: Object.freeze({ hullSections: 11, navigationLights: 42, stars: 1120, maintenancePods: 4 }),
 });
 
 function seededRandom(seed) {
@@ -209,8 +209,9 @@ function buildFarHull(materials, config) {
   for (let i = 0; i < 24; i += 1) {
     const normalized = (i / 23) * 2 - 1;
     const light = statusLight(0x94edff, 0.03);
-    light.geometry = new THREE.BoxGeometry(1.6, 0.16, 0.32);
-    light.position.set(normalized * 28, 14.4 + Math.abs(normalized) * 11.5, -222);
+    const hullY = 12.5 + Math.pow(Math.abs(normalized), 1.65) * 15;
+    light.geometry = new THREE.BoxGeometry(1.75, 0.22, 1.25);
+    light.position.set(normalized * 28, hullY - 0.62, -204);
     light.rotation.z = -normalized * 0.37;
     powerRoot.add(light);
     d9PowerBand.push(light);
@@ -229,7 +230,7 @@ function buildFarHull(materials, config) {
   starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
   const stars = new THREE.Points(
     starsGeometry,
-    new THREE.PointsMaterial({ color: 0xb9d4df, size: 0.14, transparent: true, opacity: 0.72, sizeAttenuation: true }),
+    new THREE.PointsMaterial({ color: 0xc4deea, size: 0.22, transparent: true, opacity: 0.88, sizeAttenuation: true }),
   );
   root.add(stars);
 

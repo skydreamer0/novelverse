@@ -21,6 +21,7 @@ export class MaintenanceChallenge {
     this.valveProgress = 0;
     this.excludedCables = new Set();
     this.lastSoftFailure = null;
+    this.failureNoticeRemaining = 0;
     this.slipCooldown = 0;
     this.repairQuality = 100;
   }
@@ -47,6 +48,7 @@ export class MaintenanceChallenge {
     if (id === this.targetCable) {
       this.phase = MAINTENANCE_PHASES.WELD;
       this.lastSoftFailure = null;
+      this.failureNoticeRemaining = 0;
       return { ok: true, phase: this.phase, state: this.snapshot() };
     }
 
@@ -63,7 +65,8 @@ export class MaintenanceChallenge {
     this.elapsed += dt;
     this.oxygen = Math.max(18, this.oxygen - dt * 0.14);
     this.slipCooldown = Math.max(0, this.slipCooldown - dt);
-    this.lastSoftFailure = null;
+    this.failureNoticeRemaining = Math.max(0, this.failureNoticeRemaining - dt);
+    if (this.failureNoticeRemaining === 0) this.lastSoftFailure = null;
 
     if (this.phase === MAINTENANCE_PHASES.WELD) return this.#updateWeld(dt, input);
     if (this.phase === MAINTENANCE_PHASES.VALVE) return this.#updateValve(dt, input);
@@ -153,6 +156,7 @@ export class MaintenanceChallenge {
     this.oxygen = Math.max(18, this.oxygen - oxygen);
     this.legLoad = clamp(this.legLoad + legLoad, 0, 100);
     this.lastSoftFailure = softFailure;
+    this.failureNoticeRemaining = 2.6;
     return { ok: false, softFailure, recoverable: true, state: this.snapshot() };
   }
 

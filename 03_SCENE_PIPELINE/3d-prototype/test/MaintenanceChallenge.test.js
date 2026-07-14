@@ -21,6 +21,17 @@ test('wrong cable causes a recoverable breaker trip', () => {
   assert.ok(challenge.snapshot().excludedCables.includes('cable-a'));
 });
 
+test('soft-failure guidance remains visible long enough to recover', () => {
+  const challenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
+  challenge.probeCable('cable-a');
+
+  challenge.update(0.1);
+  assert.equal(challenge.snapshot().lastSoftFailure, 'wrong-cable');
+
+  for (let frame = 0; frame < 30; frame += 1) challenge.update(0.1);
+  assert.equal(challenge.snapshot().lastSoftFailure, null);
+});
+
 test('correct cable advances to a sustained weld', () => {
   const challenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
 
