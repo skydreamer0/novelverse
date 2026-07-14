@@ -126,6 +126,8 @@ export class UIManager {
       stability: state.weldProgress ?? 0,
       pressure: state.valveResistance ?? 0,
     };
+    if (Number.isFinite(state.oxygen)) this.oxygen.textContent = String(Math.round(state.oxygen));
+    if (Number.isFinite(state.legLoad)) this.leg.textContent = String(Math.round(state.legLoad));
     for (const [key, value] of Object.entries(values)) {
       const clamped = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
       this.maintenanceValues[key].style.setProperty('--value', `${Math.round(clamped * 100)}%`);

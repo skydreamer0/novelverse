@@ -31,3 +31,12 @@ test('uses priority before distance and id for stable ties', () => {
   ]);
   assert.equal(tied.id, 'a');
 });
+
+test('selected interaction preserves semantic payload for maintenance', () => {
+  const selected = rankInteractionTargets([
+    { id: 'cable-c', cableId: 'cable-c', action: 'probe-cable', distance: 1.4, enabled: true },
+  ]);
+
+  assert.equal(selected.action, 'probe-cable');
+  assert.equal(selected.cableId, 'cable-c');
+});

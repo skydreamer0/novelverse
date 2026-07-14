@@ -8,6 +8,9 @@ import { UIManager } from './UIManager.js';
 import { AudioDirector } from './core/AudioDirector.js';
 import { QualityManager } from './core/QualityManager.js';
 import { applyQaScene } from './dev/QaScene.js';
+import { MaintenanceChallenge } from './core/MaintenanceChallenge.js';
+import { MaintenanceInput } from './core/MaintenanceInput.js';
+import { MaintenanceRuntime } from './core/MaintenanceRuntime.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x070a0d);
@@ -58,15 +61,29 @@ const ui = new UIManager({
 });
 const state = new PrologueState();
 const director = new PrologueDirector({ state, world, ui, controller, audio });
+const maintenanceChallenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
+const maintenanceInput = new MaintenanceInput();
+const maintenanceRuntime = new MaintenanceRuntime({
+  challenge: maintenanceChallenge,
+  input: maintenanceInput,
+  ui,
+  world,
+  director,
+  audio,
+});
 const interaction = new InteractionSystem(camera, {
   onPrompt: (target) => target ? ui.showInteraction(`[E] ${target.label}`) : ui.hideInteraction(),
-  onAction: (action) => director.handleAction(action),
+  onAction: (action, target) => {
+    const result = maintenanceRuntime.handleAction(action, target);
+    if (!result.handled) director.handleAction(action, target);
+  },
 });
 interaction.setTargets(world.getInteractables());
 
 const instructions = document.getElementById('instructions');
 document.getElementById('start-button').addEventListener('click', () => {
   hasStarted = true;
+  maintenanceRuntime.start();
   requestControl();
 });
 document.addEventListener('pointerlockchange', () => {
@@ -84,7 +101,7 @@ document.addEventListener('pointerlockchange', () => {
 
 if (import.meta.env.DEV) {
   const qaScene = new URLSearchParams(location.search).get('qa');
-  if (qaScene && applyQaScene(qaScene, { director, controller, ui })) {
+  if (qaScene && applyQaScene(qaScene, { director, controller, ui, maintenanceRuntime })) {
     hasStarted = true;
     fallbackActive = !ui.isModalOpen() && !ui.isEnding();
   }
@@ -100,14 +117,22 @@ const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.05);
+  const controlsAvailable = document.pointerLockElement === renderer.domElement || fallbackActive;
+  maintenanceRuntime.update(delta, {
+    hidden: document.hidden,
+    modalOpen: ui.isModalOpen() || ui.isEnding(),
+    controlsAvailable,
+  });
   const canMove = shouldEnableMovement({
     locked: document.pointerLockElement === renderer.domElement,
     fallbackActive,
     modalOpen: ui.isModalOpen(),
     ending: ui.isEnding(),
+    maintenanceActive: maintenanceRuntime.suspendsMovement(),
   });
   controller.update(delta, canMove);
-  interaction.update();
+  if (maintenanceRuntime.suspendsMovement()) ui.hideInteraction();
+  else interaction.update();
   world.update(delta);
   renderer.render(scene, camera);
 }

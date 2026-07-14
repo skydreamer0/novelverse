@@ -39,7 +39,7 @@ test('maintenance bay exposes skill interaction and power-chain cues', () => {
 
 test('world exposes every required chapter interaction', () => {
   const actions = new Set(WORLD_MANIFEST.interactions.map((item) => item.action));
-  for (const action of ['locate-short', 'secure-joint', 'pull-valve', 'scan-wristband', 'choose-bargain', 'open-airlock', 'enter-fracture']) {
+  for (const action of ['probe-cable', 'start-weld', 'start-valve', 'scan-wristband', 'choose-bargain', 'open-airlock', 'enter-fracture']) {
     assert.equal(actions.has(action), true, `missing action: ${action}`);
   }
 });

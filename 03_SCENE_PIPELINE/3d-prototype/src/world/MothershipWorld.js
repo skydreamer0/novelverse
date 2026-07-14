@@ -29,9 +29,9 @@ export const WORLD_MANIFEST = Object.freeze({
   ],
   identityCues: ['curved-hull', 'life-support-pipes', 'maintenance-abyss', 'airlock', 'hull-exterior', 'navigation-lights', 'fracture'],
   interactions: [
-    { id: 'short', action: 'locate-short' },
-    { id: 'joint', action: 'secure-joint' },
-    { id: 'valve', action: 'pull-valve' },
+    { id: 'cables', action: 'probe-cable' },
+    { id: 'joint', action: 'start-weld' },
+    { id: 'valve', action: 'start-valve' },
     { id: 'terminal', action: 'scan-wristband' },
     { id: 'sulan', action: 'choose-bargain' },
     { id: 'airlock', action: 'open-airlock' },

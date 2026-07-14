@@ -10,3 +10,13 @@ test('modal and ending states always suspend movement', () => {
   assert.equal(shouldEnableMovement({ locked: true, fallbackActive: false, modalOpen: true, ending: false }), false);
   assert.equal(shouldEnableMovement({ locked: false, fallbackActive: true, modalOpen: false, ending: true }), false);
 });
+
+test('sustained maintenance suspends walking without disabling fallback look', () => {
+  assert.equal(shouldEnableMovement({
+    locked: false,
+    fallbackActive: true,
+    modalOpen: false,
+    ending: false,
+    maintenanceActive: true,
+  }), false);
+});
