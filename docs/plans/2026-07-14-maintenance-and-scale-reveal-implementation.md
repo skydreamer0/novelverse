@@ -49,7 +49,9 @@ test('overheat resets only weld progress and unlocks assistance', () => {
   const challenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
   challenge.probeCable('cable-c');
   for (let failure = 0; failure < 2; failure += 1) {
-    challenge.update(3, { engaged: true, alignment: 1 });
+    for (let frame = 0; frame < 140; frame += 1) {
+      challenge.update(0.1, { engaged: true, alignment: 1 });
+    }
   }
   assert.equal(challenge.phase, MAINTENANCE_PHASES.WELD);
   assert.ok(challenge.assistLevel > 0);
@@ -58,7 +60,10 @@ test('overheat resets only weld progress and unlocks assistance', () => {
 
 test('braced valve work completes with a graded result', () => {
   const challenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
-  challenge.debugAdvanceToValve();
+  challenge.probeCable('cable-c');
+  for (let i = 0; i < 160; i += 1) {
+    challenge.update(0.1, { engaged: true, alignment: challenge.weldTarget });
+  }
   for (let i = 0; i < 240 && !challenge.complete; i += 1) {
     challenge.update(0.1, { pulling: true, braced: true });
   }
