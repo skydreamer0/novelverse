@@ -24,6 +24,19 @@ test('exterior reveal is dominated by a readable curved hull', () => {
   assert.equal(WORLD_MANIFEST.airlockPlane, 'xy');
 });
 
+test('exterior preserves scale evidence at every quality tier', () => {
+  assert.deepEqual(WORLD_MANIFEST.exterior.layers, ['foreground', 'midground', 'far-hull']);
+  for (const reference of ['crew-silhouettes', 'service-train', 'd9-power-band']) {
+    assert.ok(WORLD_MANIFEST.exterior.scaleReferences.includes(reference), `missing scale reference: ${reference}`);
+  }
+  assert.ok(WORLD_MANIFEST.exterior.movingReferences >= 3);
+  assert.deepEqual(Object.keys(WORLD_MANIFEST.exterior.qualityTiers), ['low', 'medium', 'high']);
+  for (const tier of Object.values(WORLD_MANIFEST.exterior.qualityTiers)) {
+    assert.ok(tier.hullSections >= 7);
+    assert.ok(tier.navigationLights >= 18);
+  }
+});
+
 test('maintenance pipe jungle preserves a readable player aisle', () => {
   assert.equal(WORLD_MANIFEST.maintenanceClearance >= 3.6, true);
   assert.equal(WORLD_MANIFEST.ribPlane, 'xy');

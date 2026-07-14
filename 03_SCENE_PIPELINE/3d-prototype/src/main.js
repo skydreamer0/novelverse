@@ -11,6 +11,7 @@ import { applyQaScene } from './dev/QaScene.js';
 import { MaintenanceChallenge } from './core/MaintenanceChallenge.js';
 import { MaintenanceInput } from './core/MaintenanceInput.js';
 import { MaintenanceRuntime } from './core/MaintenanceRuntime.js';
+import { ScaleRevealDirector } from './core/ScaleRevealDirector.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x070a0d);
@@ -32,7 +33,7 @@ const key = new THREE.DirectionalLight(0x9eb4c6, 1.1);
 key.position.set(20, 35, 15);
 scene.add(key);
 
-const world = new MothershipWorld(scene);
+const world = new MothershipWorld(scene, { qualityTier: quality.tier });
 const controller = new FirstPersonController(camera, renderer.domElement);
 const audio = new AudioDirector();
 let fallbackActive = false;
@@ -60,7 +61,8 @@ const ui = new UIManager({
   onMute: (muted) => audio.setMuted(muted),
 });
 const state = new PrologueState();
-const director = new PrologueDirector({ state, world, ui, controller, audio });
+const revealDirector = new ScaleRevealDirector();
+const director = new PrologueDirector({ state, world, ui, controller, audio, revealDirector });
 const maintenanceChallenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
 const maintenanceInput = new MaintenanceInput();
 const maintenanceRuntime = new MaintenanceRuntime({
@@ -123,6 +125,11 @@ function animate() {
     modalOpen: ui.isModalOpen() || ui.isEnding(),
     controlsAvailable,
   });
+  if (revealDirector.active) {
+    const revealSnapshot = revealDirector.update(delta);
+    world.applyReveal(revealSnapshot);
+    controller.setBounds({ minZ: revealSnapshot.traversalOpen ? -205 : -142 });
+  }
   const canMove = shouldEnableMovement({
     locked: document.pointerLockElement === renderer.domElement,
     fallbackActive,
