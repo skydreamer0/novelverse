@@ -76,7 +76,7 @@ test('braced valve work completes with a graded result', () => {
 
 **Step 2: Run the test to verify it fails**
 
-Run: `npm test -- test/MaintenanceChallenge.test.js`  
+Run: `npm test -- test/MaintenanceChallenge.test.js`
 Expected: FAIL because `MaintenanceChallenge.js` does not exist.
 
 **Step 3: Implement the pure state machine**
@@ -93,9 +93,9 @@ Export frozen phases `locate`, `weld`, `valve`, `complete`. Use clamped numeric 
 
 **Step 4: Run the focused and full tests**
 
-Run: `npm test -- test/MaintenanceChallenge.test.js`  
-Expected: maintenance tests PASS.  
-Run: `npm test`  
+Run: `npm test -- test/MaintenanceChallenge.test.js`
+Expected: maintenance tests PASS.
+Run: `npm test`
 Expected: all tests PASS.
 
 **Step 5: Commit**
@@ -140,7 +140,7 @@ Also reject incomplete or out-of-range payloads and keep `debug-skip-maintenance
 
 **Step 2: Run focused tests and verify failure**
 
-Run: `npm test -- test/PrologueState.test.js test/PrologueDirector.test.js`  
+Run: `npm test -- test/PrologueState.test.js test/PrologueDirector.test.js`
 Expected: FAIL because the new event and fields are absent.
 
 **Step 3: Implement the chapter adapter**
@@ -153,7 +153,7 @@ Expected: FAIL because the new event and fields are absent.
 
 **Step 4: Verify**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: all tests PASS.
 
 **Step 5: Commit**
@@ -195,7 +195,7 @@ Extend copy tests to require chapter-safe labels for probe, weld heat, joint sta
 
 **Step 2: Run focused tests and verify failure**
 
-Run: `npm test -- test/MaintenanceInput.test.js test/ReaderSafeCopy.test.js`  
+Run: `npm test -- test/MaintenanceInput.test.js test/ReaderSafeCopy.test.js`
 Expected: FAIL because the mapper and copy are absent.
 
 **Step 3: Implement input and UI**
@@ -209,7 +209,7 @@ Expected: FAIL because the mapper and copy are absent.
 
 **Step 4: Verify**
 
-Run: `npm test && npm run build`  
+Run: `npm test && npm run build`
 Expected: tests PASS and Vite build succeeds.
 
 **Step 5: Commit**
@@ -245,7 +245,7 @@ Test a pure `deriveMaintenanceFeedback(previous, next)` mapper for wrong cable, 
 
 **Step 2: Run focused tests and verify failure**
 
-Run: `npm test -- test/WorldManifest.test.js test/MaintenanceFeedback.test.js`  
+Run: `npm test -- test/WorldManifest.test.js test/MaintenanceFeedback.test.js`
 Expected: FAIL on missing manifest and mapper.
 
 **Step 3: Build the reactive scene**
@@ -259,7 +259,7 @@ Expected: FAIL on missing manifest and mapper.
 
 **Step 4: Verify**
 
-Run: `npm test && npm run build`  
+Run: `npm test && npm run build`
 Expected: tests PASS and build succeeds.
 
 **Step 5: Commit**
@@ -285,7 +285,7 @@ Test that interaction dispatch preserves target payload, sustained repair suspen
 
 **Step 2: Run focused tests and verify failure**
 
-Run: `npm test -- test/InteractionSystem.test.js test/MaintenanceRuntime.test.js test/QaScene.test.js`  
+Run: `npm test -- test/InteractionSystem.test.js test/MaintenanceRuntime.test.js test/QaScene.test.js`
 Expected: FAIL on missing runtime contracts.
 
 **Step 3: Compose the runtime**
@@ -300,7 +300,7 @@ Expected: FAIL on missing runtime contracts.
 
 **Step 4: Verify**
 
-Run: `npm test && npm run build`  
+Run: `npm test && npm run build`
 Expected: all tests PASS and build succeeds.
 
 **Step 5: Commit**
@@ -346,7 +346,7 @@ test('D9 power echo retains repair quality without blocking reveal', () => {
 
 **Step 2: Run and verify failure**
 
-Run: `npm test -- test/ScaleRevealDirector.test.js`  
+Run: `npm test -- test/ScaleRevealDirector.test.js`
 Expected: FAIL because the director does not exist.
 
 **Step 3: Implement the pure timeline**
@@ -355,7 +355,7 @@ Export phases `sealed`, `depressurizing`, `slit`, `hull-reveal`, `power-echo`, a
 
 **Step 4: Verify**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: all tests PASS.
 
 **Step 5: Commit**
@@ -389,7 +389,7 @@ test('exterior preserves scale evidence at every quality tier', () => {
 
 **Step 2: Run and verify failure**
 
-Run: `npm test -- test/WorldManifest.test.js`  
+Run: `npm test -- test/WorldManifest.test.js`
 Expected: FAIL because layered exterior metadata is absent.
 
 **Step 3: Build the layered exterior**
@@ -403,7 +403,7 @@ Expected: FAIL because layered exterior metadata is absent.
 
 **Step 4: Verify**
 
-Run: `npm test && npm run build`  
+Run: `npm test && npm run build`
 Expected: tests PASS and build succeeds.
 
 **Step 5: Commit**
@@ -428,7 +428,7 @@ Export a serializable profile builder and assert that the silhouette is vertical
 
 **Step 2: Run and verify failure**
 
-Run: `npm test -- test/FractureMaterial.test.js test/RuntimeQuality.test.js`  
+Run: `npm test -- test/FractureMaterial.test.js test/RuntimeQuality.test.js`
 Expected: FAIL because fracture profiles do not exist.
 
 **Step 3: Implement the fracture**
@@ -441,7 +441,7 @@ Expected: FAIL because fracture profiles do not exist.
 
 **Step 4: Verify**
 
-Run: `npm test && npm run build`  
+Run: `npm test && npm run build`
 Expected: tests PASS and build succeeds without shader compile errors.
 
 **Step 5: Commit**
@@ -467,7 +467,7 @@ Require reader-safe signal profiles for probe pulse, wrong cable, breaker trip, 
 
 **Step 2: Run focused tests and verify failure**
 
-Run: `npm test -- test/RuntimeQuality.test.js test/QaScene.test.js`  
+Run: `npm test -- test/RuntimeQuality.test.js test/QaScene.test.js`
 Expected: FAIL on missing signal and preset coverage.
 
 **Step 3: Implement causal sound and finish composition**
@@ -479,13 +479,13 @@ Expected: FAIL on missing signal and preset coverage.
 
 **Step 4: Run automated verification**
 
-Run: `npm test`  
-Expected: every old and new test PASS.  
-Run: `npm run build`  
-Expected: production build succeeds.  
-Run: `git diff --check`  
-Expected: no whitespace errors.  
-Run: `git status --short -- novel`  
+Run: `npm test`
+Expected: every old and new test PASS.
+Run: `npm run build`
+Expected: production build succeeds.
+Run: `git diff --check`
+Expected: no whitespace errors.
+Run: `git status --short -- novel`
 Expected: no output.
 
 **Step 5: Run browser QA**
@@ -522,11 +522,11 @@ Create an internal checklist covering 3–5 minute pacing, distinct controls, so
 
 **Step 2: Re-run fresh verification**
 
-Run: `npm test && npm run build`  
-Expected: PASS.  
-Run: `git diff --check main...HEAD`  
-Expected: no output.  
-Run: `git status --short`  
+Run: `npm test && npm run build`
+Expected: PASS.
+Run: `git diff --check main...HEAD`
+Expected: no output.
+Run: `git status --short`
 Expected: no output after final commit.
 
 **Step 3: Commit any evidence-only corrections**
