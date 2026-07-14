@@ -19,7 +19,8 @@ function setup() {
     setBounds: (value) => calls.push(['bounds', value.minZ]),
   };
   const audio = { signal: (name) => calls.push(['audio', name]) };
-  return { calls, state, director: new PrologueDirector({ state, world, ui, controller, audio }) };
+  const revealDirector = { start: (value) => calls.push(['reveal-start', value.repairQuality]) };
+  return { calls, state, director: new PrologueDirector({ state, world, ui, controller, audio, revealDirector }) };
 }
 
 test('completed maintenance persists performance and unlocks the terminal corridor', () => {
@@ -75,6 +76,7 @@ test('airlock reveal precedes chapter ending', () => {
   director.handleAction('open-airlock');
   assert.equal(state.beat, BEATS.REVEAL);
   assert.equal(calls.some(([type, minZ]) => type === 'bounds' && minZ === -205), true);
+  assert.equal(calls.some(([type, quality]) => type === 'reveal-start' && quality === 100), true);
   director.handleAction('enter-fracture');
   assert.equal(state.beat, BEATS.COMPLETE);
   assert.equal(calls.some(([type]) => type === 'ending'), true);

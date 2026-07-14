@@ -20,12 +20,13 @@ const SUBTITLES = Object.freeze({
 });
 
 export class PrologueDirector {
-  constructor({ state, world, ui, controller, audio = null }) {
+  constructor({ state, world, ui, controller, audio = null, revealDirector = null }) {
     this.state = state;
     this.world = world;
     this.ui = ui;
     this.controller = controller;
     this.audio = audio;
+    this.revealDirector = revealDirector;
     this.busy = false;
     this.#sync(state.snapshot());
   }
@@ -40,6 +41,9 @@ export class PrologueDirector {
     this.busy = true;
     const result = this.state.apply(action, payload);
     if (result.ok) {
+      if (action === 'open-airlock') {
+        this.revealDirector?.start?.({ repairQuality: result.state.repairQuality });
+      }
       this.#sync(result.state);
       this.audio?.signal?.(action);
       if (SUBTITLES[action]) this.ui.showSubtitle?.(SUBTITLES[action]);
