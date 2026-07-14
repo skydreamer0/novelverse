@@ -137,7 +137,13 @@ function buildFarHull(materials, config) {
   root.name = 'exterior-far-hull';
 
   const shadowCards = new THREE.Group();
-  const shadowMaterial = new THREE.MeshBasicMaterial({ color: 0x030607, transparent: true, opacity: 0.78, side: THREE.DoubleSide });
+  const shadowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x030607,
+    transparent: true,
+    opacity: 0.62,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
   for (const [x, y, z, width, height, rz] of [
     [-31, 18, -213, 31, 96, -0.34],
     [31, 18, -213, 31, 96, 0.34],
@@ -239,6 +245,14 @@ export function buildExteriorScaleLayers(materials, { qualityTier = 'high' } = {
   const farHull = buildFarHull(materials, config);
   root.add(foreground.root, midground.root, farHull.root);
 
+  const nearFill = new THREE.PointLight(0x8fc4d2, 380, 92, 1.3);
+  nearFill.position.set(5, 5.5, -159);
+  const hullFill = new THREE.PointLight(0x587f94, 680, 126, 1.45);
+  hullFill.position.set(-16, 22, -222);
+  const workFill = new THREE.PointLight(0xd18c58, 260, 58, 1.6);
+  workFill.position.set(14, 7, -178);
+  root.add(nearFill, hullFill, workFill);
+
   return {
     root,
     layers: { foreground: foreground.root, midground: midground.root, farHull: farHull.root },
@@ -253,6 +267,7 @@ export function buildExteriorScaleLayers(materials, { qualityTier = 'high' } = {
       navigationLights: farHull.navigationLights,
       d9PowerBand: farHull.d9PowerBand,
       stars: farHull.stars,
+      fillLights: [nearFill, hullFill, workFill],
     },
   };
 }

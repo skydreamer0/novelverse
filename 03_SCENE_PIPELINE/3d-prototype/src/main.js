@@ -33,7 +33,8 @@ const key = new THREE.DirectionalLight(0x9eb4c6, 1.1);
 key.position.set(20, 35, 15);
 scene.add(key);
 
-const world = new MothershipWorld(scene, { qualityTier: quality.tier });
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const world = new MothershipWorld(scene, { qualityTier: quality.tier, reducedMotion });
 const controller = new FirstPersonController(camera, renderer.domElement);
 const audio = new AudioDirector();
 let fallbackActive = false;

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { addGratedFloor, addHullRibs, statusLight } from './materials.js';
 import { buildExteriorScaleLayers } from './buildExteriorScaleLayers.js';
+import { buildFractureWound } from './FractureMaterial.js';
 
 function buildAirlock(materials) {
   const airlock = new THREE.Group();
@@ -78,7 +79,7 @@ function buildAirlock(materials) {
   return { root: airlock, door, warningLights, fogPlanes };
 }
 
-export function buildDeploymentBelt(materials, { qualityTier = 'high' } = {}) {
+export function buildDeploymentBelt(materials, { qualityTier = 'high', reducedMotion = false } = {}) {
   const root = new THREE.Group();
   root.name = 'deployment-belt';
   addGratedFloor(root, -125, 48, materials.grate);
@@ -112,22 +113,16 @@ export function buildDeploymentBelt(materials, { qualityTier = 'high' } = {}) {
   const exterior = buildExteriorScaleLayers(materials, { qualityTier });
   root.add(exterior.root);
 
-  const fracture = new THREE.Group();
-  fracture.name = 'fracture-placeholder';
-  const wound = new THREE.Mesh(new THREE.CircleGeometry(5, 22), materials.fracture);
-  wound.scale.x = 0.26;
-  const arc = new THREE.Mesh(new THREE.RingGeometry(4.7, 5.3, 22), materials.blueArc);
-  arc.scale.x = 0.28;
-  fracture.add(wound, arc);
-  fracture.position.set(0, 5.2, -190);
-  fracture.visible = false;
-  exterior.root.add(fracture);
+  const fracture = buildFractureWound({ qualityTier, reducedMotion });
+  fracture.root.position.set(0, 11.5, -210);
+  fracture.root.visible = false;
+  exterior.root.add(fracture.root);
 
   return {
     root,
     interactables: [
       { id: 'airlock', object: control, action: 'open-airlock', label: '開啟氣閘', maxDistance: 3.5, priority: 3, enabled: false },
-      { id: 'fracture', object: fracture, action: 'enter-fracture', label: '進入裂隙', maxDistance: 5.5, priority: 4, enabled: false },
+      { id: 'fracture', object: fracture.root, action: 'enter-fracture', label: '進入裂隙', maxDistance: 7.5, priority: 4, enabled: false },
     ],
     handles: {
       airlock: airlock.root,
@@ -137,8 +132,8 @@ export function buildDeploymentBelt(materials, { qualityTier = 'high' } = {}) {
       exterior: exterior.root,
       layers: exterior.layers,
       ...exterior.handles,
-      fracture,
-      arc,
+      fracture: fracture.root,
+      fractureWound: fracture,
     },
   };
 }

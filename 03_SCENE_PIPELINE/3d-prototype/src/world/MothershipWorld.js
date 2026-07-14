@@ -6,6 +6,7 @@ import { buildBlackMarket } from './buildBlackMarket.js';
 import { buildDeploymentBelt } from './buildDeploymentBelt.js';
 import { EXTERIOR_QUALITY } from './buildExteriorScaleLayers.js';
 import { deriveMaintenanceFeedback } from './MaintenanceFeedback.js';
+import { updateFractureWound } from './FractureMaterial.js';
 
 export const WORLD_MANIFEST = Object.freeze({
   maintenanceClearance: 4,
@@ -47,7 +48,7 @@ export const WORLD_MANIFEST = Object.freeze({
 });
 
 export class MothershipWorld {
-  constructor(scene, { qualityTier = 'high' } = {}) {
+  constructor(scene, { qualityTier = 'high', reducedMotion = false } = {}) {
     this.scene = scene;
     this.materials = createMaterials();
     this.interactables = [];
@@ -63,7 +64,7 @@ export class MothershipWorld {
     this.maintenance = this.#add(buildMaintenanceBay(this.materials));
     this.terminal = this.#add(buildTerminalCorridor(this.materials));
     this.market = this.#add(buildBlackMarket(this.materials));
-    this.deployment = this.#add(buildDeploymentBelt(this.materials, { qualityTier }));
+    this.deployment = this.#add(buildDeploymentBelt(this.materials, { qualityTier, reducedMotion }));
 
     this.scene.add(new THREE.AmbientLight(0x31404a, 0.38));
     this.maintenanceLight = new THREE.PointLight(0xe09a58, 2.1, 26);
@@ -127,11 +128,14 @@ export class MothershipWorld {
       light.material.emissiveIntensity = index < litCount ? (1.4 + snapshot.powerStability * 2.1) * unstable : 0.025;
     });
     handles.workLights.forEach((light, index) => {
-      light.intensity = snapshot.hullExposure * (34 + index * 8);
+      light.intensity = snapshot.hullExposure * (240 + index * 55);
     });
 
-    handles.fracture.visible = snapshot.fractureIntensity > 0.005;
-    handles.arc.material.opacity = snapshot.fractureIntensity * 0.88;
+    updateFractureWound(handles.fractureWound, {
+      time: snapshot.elapsed,
+      intensity: snapshot.fractureIntensity,
+      spotlightBend: snapshot.spotlightBend,
+    });
     handles.fracture.scale.setScalar(0.72 + snapshot.fractureIntensity * 0.28);
     const fractureTarget = this.interactables.find((item) => item.id === 'fracture');
     if (fractureTarget) fractureTarget.enabled = snapshot.traversalOpen;
@@ -182,9 +186,6 @@ export class MothershipWorld {
       const running = this.powerRestoreTarget > index % 3 ? 1 : 0.08;
       fan.rotation.z += delta * running * (1.2 + index * 0.15);
     });
-    const fractureIntensity = this.revealSnapshot?.fractureIntensity ?? 0;
-    const pulse = (0.72 + Math.sin(this.elapsed * 8.5) * 0.28) * fractureIntensity;
-    this.deployment.handles.arc.material.opacity = pulse;
     this.deployment.handles.fracture.rotation.z = Math.sin(this.elapsed * 2.2) * 0.025;
     this.deployment.handles.stars.position.x = Math.sin(this.elapsed * 0.025) * 0.7;
     this.deployment.handles.serviceTrain.position.z = -202 + (this.elapsed * 2.35) % 66;
