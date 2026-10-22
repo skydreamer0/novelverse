@@ -16,6 +16,8 @@ export class PrologueState {
     this.legLoad = 12;
     this.repairStep = 0;
     this.repairQuality = 0;
+    this.maintenanceFailures = 0;
+    this.maintenanceElapsed = 0;
     this.debt = 0;
     this.deadlineHours = null;
     this.missionAccepted = false;
@@ -36,6 +38,8 @@ export class PrologueState {
       legLoad: this.legLoad,
       repairStep: this.repairStep,
       repairQuality: this.repairQuality,
+      maintenanceFailures: this.maintenanceFailures,
+      maintenanceElapsed: this.maintenanceElapsed,
       debt: this.debt,
       deadlineHours: this.deadlineHours,
       missionAccepted: this.missionAccepted,
@@ -58,6 +62,8 @@ export class PrologueState {
     if (event === 'debug-skip-maintenance') {
       this.repairStep = 3;
       this.repairQuality = 100;
+      this.maintenanceFailures = 0;
+      this.maintenanceElapsed = 0;
       this.beat = BEATS.TERMINAL;
       return { ok: true };
     }
@@ -65,6 +71,8 @@ export class PrologueState {
     if (event === 'debug-skip-black-market') {
       this.repairStep = 3;
       this.repairQuality = 100;
+      this.maintenanceFailures = 0;
+      this.maintenanceElapsed = 0;
       this.debt = 40;
       this.deadlineHours = 72;
       this.beat = BEATS.BLACK_MARKET;
@@ -72,6 +80,18 @@ export class PrologueState {
     }
 
     if (this.beat === BEATS.MAINTENANCE) {
+      if (event === 'complete-maintenance') {
+        if (!this.#validMaintenanceResult(payload)) return this.#reject('維修結果不完整');
+        this.repairStep = 3;
+        this.oxygen = payload.oxygen;
+        this.legLoad = payload.legLoad;
+        this.repairQuality = Math.round(payload.repairQuality);
+        this.maintenanceFailures = Math.round(payload.failureCount);
+        this.maintenanceElapsed = payload.elapsed;
+        this.beat = BEATS.TERMINAL;
+        return { ok: true };
+      }
+
       const sequence = ['locate-short', 'secure-joint', 'pull-valve'];
       if (event !== sequence[this.repairStep]) return this.#reject('維修步驟尚未就緒');
       this.repairStep += 1;
@@ -114,5 +134,17 @@ export class PrologueState {
 
   #reject(reason) {
     return { ok: false, reason, state: this.snapshot() };
+  }
+
+  #validMaintenanceResult(payload) {
+    if (payload.complete !== true) return false;
+    const finite = ['oxygen', 'legLoad', 'repairQuality', 'failureCount', 'elapsed']
+      .every((key) => Number.isFinite(payload[key]));
+    return finite
+      && payload.oxygen >= 0 && payload.oxygen <= 100
+      && payload.legLoad >= 0 && payload.legLoad <= 100
+      && payload.repairQuality >= 1 && payload.repairQuality <= 100
+      && payload.failureCount >= 0
+      && payload.elapsed >= 0;
   }
 }

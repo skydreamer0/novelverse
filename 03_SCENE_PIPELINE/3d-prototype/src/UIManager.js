@@ -1,3 +1,7 @@
+export function shouldToggleWristband({ code, gameActive, interactiveTarget }) {
+  return code === 'Tab' && gameActive === true && interactiveTarget !== true;
+}
+
 export const UI_COPY = Object.freeze({
   resident: '居民編號：D9-4417，林燼',
   audit: ['歷史欠額：二十七點', '新增戰備附加稅：九點', '最低生存貢獻需求：四十點', '限期：七十二小時'],
@@ -18,10 +22,34 @@ export const UI_COPY = Object.freeze({
     reveal: '第七投放帶／母艦外環',
     complete: '裂縫邊界',
   },
+  maintenance: {
+    phases: {
+      locate: '探測電纜',
+      weld: '固定臨時接頭',
+      valve: '拉下備援閥',
+      complete: '氧循環恢復',
+    },
+    labels: {
+      signal: '探針訊號',
+      heat: '焊接熱度',
+      stability: '接頭穩定',
+      pressure: '管線壓力',
+    },
+    instructions: {
+      locate: '對準候選線路，按 E 探測電纜。',
+      weld: 'A／D 調整輸出，按住空白鍵焊接。',
+      valve: '觀察壓力錶；低壓時按住 Shift 與空白鍵施力。',
+      complete: '供電正沿第九段逐區恢復。',
+    },
+    valvePull: '壓力進入谷值：按住 Shift 與空白鍵，現在施力。',
+    valveHold: '壓力正在攀升：放開空白鍵，穩住義腿等待谷值。',
+    recovery: '斷路器復歸中；保持呼吸，重新確認線路。',
+    assistance: '腕環已放寬安全窗；保持節奏，失誤不會重置整段。',
+  },
 });
 
 export class UIManager {
-  constructor({ onResume = () => {}, onMute = () => {} } = {}) {
+  constructor({ onResume = () => {}, onMute = () => {}, onMotion = () => {} } = {}) {
     this.onResume = onResume;
     this.onMute = onMute;
     this.prompt = document.getElementById('interaction-prompt');
@@ -38,10 +66,26 @@ export class UIManager {
     this.terminal = document.getElementById('terminal-overlay');
     this.bargain = document.getElementById('bargain-overlay');
     this.ending = document.getElementById('end-screen');
+    this.crosshair = document.getElementById('crosshair');
+    this.maintenanceTool = document.getElementById('maintenance-tool');
+    this.maintenancePhase = document.getElementById('maintenance-phase');
+    this.maintenanceInstruction = document.getElementById('maintenance-instruction');
+    this.maintenanceRecovery = document.getElementById('maintenance-recovery');
+    this.maintenanceValues = {
+      signal: document.getElementById('maintenance-signal'),
+      heat: document.getElementById('maintenance-heat'),
+      stability: document.getElementById('maintenance-stability'),
+      pressure: document.getElementById('maintenance-pressure'),
+    };
     this.subtitleTimer = null;
 
     document.addEventListener('keydown', (event) => {
-      if (event.code === 'Tab') {
+      const interactiveTarget = Boolean(event.target?.closest?.('button, a, input, select, textarea, [tabindex]'));
+      if (shouldToggleWristband({
+        code: event.code,
+        gameActive: document.body.classList.contains('is-game-active'),
+        interactiveTarget,
+      })) {
         event.preventDefault();
         this.wristband.classList.toggle('is-collapsed');
       }
@@ -51,7 +95,7 @@ export class UIManager {
       this.onResume();
     });
     this.#bindToggle('contrast-toggle', 'high-contrast');
-    this.#bindToggle('motion-toggle', 'reduced-motion');
+    this.#bindToggle('motion-toggle', 'reduced-motion', onMotion);
     document.getElementById('audio-toggle').addEventListener('click', (event) => {
       const active = event.currentTarget.getAttribute('aria-pressed') !== 'true';
       event.currentTarget.setAttribute('aria-pressed', String(active));
@@ -73,6 +117,41 @@ export class UIManager {
   showInteraction(text) {
     this.prompt.textContent = text;
     this.prompt.hidden = false;
+  }
+
+  setMaintenanceActive(active) {
+    this.maintenanceTool.hidden = !active;
+    this.crosshair.hidden = active;
+    if (active) this.hideInteraction();
+  }
+
+  renderMaintenance(state) {
+    const phase = state.phase ?? 'locate';
+    this.maintenancePhase.textContent = UI_COPY.maintenance.phases[phase] ?? UI_COPY.maintenance.phases.locate;
+    const valveInstruction = (state.valveResistance ?? 1) <= (state.valveSafeThreshold ?? 0)
+      ? UI_COPY.maintenance.valvePull
+      : UI_COPY.maintenance.valveHold;
+    this.maintenanceInstruction.textContent = phase === 'valve'
+      ? valveInstruction
+      : UI_COPY.maintenance.instructions[phase] ?? '';
+    this.maintenanceRecovery.hidden = !state.lastSoftFailure;
+    this.maintenanceRecovery.textContent = state.assistLevel > 0
+      ? UI_COPY.maintenance.assistance
+      : UI_COPY.maintenance.recovery;
+
+    const values = {
+      signal: state.signalStrength ?? (phase === 'locate' ? 0 : 1),
+      heat: state.weldHeat ?? 0,
+      stability: state.weldProgress ?? 0,
+      pressure: state.valveResistance ?? 0,
+    };
+    if (Number.isFinite(state.oxygen)) this.oxygen.textContent = String(Math.round(state.oxygen));
+    if (Number.isFinite(state.legLoad)) this.leg.textContent = String(Math.round(state.legLoad));
+    for (const [key, value] of Object.entries(values)) {
+      const clamped = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
+      this.maintenanceValues[key].style.setProperty('--value', `${Math.round(clamped * 100)}%`);
+      this.maintenanceValues[key].setAttribute('aria-valuenow', String(Math.round(clamped * 100)));
+    }
   }
 
   hideInteraction() {
@@ -119,11 +198,12 @@ export class UIManager {
     return !this.ending.hidden;
   }
 
-  #bindToggle(id, className) {
+  #bindToggle(id, className, onChange = () => {}) {
     document.getElementById(id).addEventListener('click', (event) => {
       const active = event.currentTarget.getAttribute('aria-pressed') !== 'true';
       event.currentTarget.setAttribute('aria-pressed', String(active));
       document.documentElement.classList.toggle(className, active);
+      onChange(active);
     });
   }
 }

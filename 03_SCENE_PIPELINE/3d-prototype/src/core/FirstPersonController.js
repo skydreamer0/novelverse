@@ -2,8 +2,8 @@ import * as THREE from 'three';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
-export function shouldEnableMovement({ locked, fallbackActive, modalOpen, ending }) {
-  return (locked || fallbackActive) && !modalOpen && !ending;
+export function shouldEnableMovement({ locked, fallbackActive, modalOpen, ending, maintenanceActive = false }) {
+  return (locked || fallbackActive) && !modalOpen && !ending && !maintenanceActive;
 }
 
 export class FirstPersonController {

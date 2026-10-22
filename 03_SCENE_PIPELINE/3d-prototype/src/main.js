@@ -5,9 +5,13 @@ import { InteractionSystem } from './core/InteractionSystem.js';
 import { PrologueState } from './core/PrologueState.js';
 import { PrologueDirector } from './core/PrologueDirector.js';
 import { UIManager } from './UIManager.js';
-import { AudioDirector } from './core/AudioDirector.js';
+import { AudioDirector, shouldPauseAudio } from './core/AudioDirector.js';
 import { QualityManager } from './core/QualityManager.js';
 import { applyQaScene } from './dev/QaScene.js';
+import { MaintenanceChallenge } from './core/MaintenanceChallenge.js';
+import { MaintenanceInput } from './core/MaintenanceInput.js';
+import { MaintenanceRuntime } from './core/MaintenanceRuntime.js';
+import { ScaleRevealDirector, shouldTickReveal } from './core/ScaleRevealDirector.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x070a0d);
@@ -29,17 +33,21 @@ const key = new THREE.DirectionalLight(0x9eb4c6, 1.1);
 key.position.set(20, 35, 15);
 scene.add(key);
 
-const world = new MothershipWorld(scene);
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const world = new MothershipWorld(scene, { qualityTier: quality.tier, reducedMotion });
 const controller = new FirstPersonController(camera, renderer.domElement);
 const audio = new AudioDirector();
 let fallbackActive = false;
 let hasStarted = false;
+let previousRevealPhase = null;
+let spotlightBendSignaled = false;
 
 function enableFallbackControl() {
   fallbackActive = true;
   controller.enableFallbackLook(true);
   document.getElementById('instructions').style.display = 'none';
   ui?.showSubtitle('滑鼠鎖定不可用：按住畫面拖曳視角，WASD 移動。');
+  syncAudioPause();
 }
 
 function requestControl() {
@@ -55,18 +63,50 @@ function requestControl() {
 const ui = new UIManager({
   onResume: requestControl,
   onMute: (muted) => audio.setMuted(muted),
+  onMotion: (enabled) => world.setReducedMotion(enabled),
 });
 const state = new PrologueState();
-const director = new PrologueDirector({ state, world, ui, controller, audio });
+const revealDirector = new ScaleRevealDirector();
+const director = new PrologueDirector({ state, world, ui, controller, audio, revealDirector });
+const maintenanceChallenge = new MaintenanceChallenge({ targetCable: 'cable-c' });
+const maintenanceInput = new MaintenanceInput();
+const maintenanceRuntime = new MaintenanceRuntime({
+  challenge: maintenanceChallenge,
+  input: maintenanceInput,
+  ui,
+  world,
+  director,
+  audio,
+});
 const interaction = new InteractionSystem(camera, {
-  onPrompt: (target) => target ? ui.showInteraction(`[E] ${target.label}`) : ui.hideInteraction(),
-  onAction: (action) => director.handleAction(action),
+  onPrompt: (target) => {
+    maintenanceRuntime.setProbeTarget(target?.action === 'probe-cable' ? target : null);
+    if (target) ui.showInteraction(`[E] ${target.label}`);
+    else ui.hideInteraction();
+  },
+  onAction: (action, target) => {
+    const result = maintenanceRuntime.handleAction(action, target);
+    if (!result.handled) director.handleAction(action, target);
+    syncAudioPause();
+  },
 });
 interaction.setTargets(world.getInteractables());
 
 const instructions = document.getElementById('instructions');
+function syncAudioPause() {
+  const controlsAvailable = document.pointerLockElement === renderer.domElement || fallbackActive;
+  void audio.setPaused(shouldPauseAudio({
+    hasStarted,
+    hidden: document.hidden,
+    modalOpen: ui.isModalOpen() || ui.isEnding(),
+    controlsAvailable,
+  }));
+}
+
 document.getElementById('start-button').addEventListener('click', () => {
   hasStarted = true;
+  document.body.classList.add('is-game-active');
+  maintenanceRuntime.start();
   requestControl();
 });
 document.addEventListener('pointerlockchange', () => {
@@ -80,12 +120,14 @@ document.addEventListener('pointerlockchange', () => {
     instructions.querySelector('.premise').textContent = '遊戲已暫停。點擊下方按鈕返回第九段。';
     document.getElementById('start-button').querySelector('span').textContent = '返回艙底';
   }
+  syncAudioPause();
 });
 
 if (import.meta.env.DEV) {
   const qaScene = new URLSearchParams(location.search).get('qa');
-  if (qaScene && applyQaScene(qaScene, { director, controller, ui })) {
+  if (qaScene && applyQaScene(qaScene, { director, controller, ui, maintenanceRuntime, revealDirector })) {
     hasStarted = true;
+    document.body.classList.add('is-game-active');
     fallbackActive = !ui.isModalOpen() && !ui.isEnding();
   }
 }
@@ -95,19 +137,54 @@ addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
+document.addEventListener('visibilitychange', syncAudioPause);
 
 const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.05);
+  const controlsAvailable = document.pointerLockElement === renderer.domElement || fallbackActive;
+  maintenanceRuntime.update(delta, {
+    hidden: document.hidden,
+    modalOpen: ui.isModalOpen() || ui.isEnding(),
+    controlsAvailable,
+  });
+  if (revealDirector.active) {
+    const revealAdvancing = shouldTickReveal({
+      active: revealDirector.active,
+      hidden: document.hidden,
+      modalOpen: ui.isModalOpen() || ui.isEnding(),
+      controlsAvailable,
+      delta,
+    });
+    const revealSnapshot = revealAdvancing ? revealDirector.update(delta) : revealDirector.snapshot();
+    world.applyReveal(revealSnapshot);
+    audio.setRevealState(revealAdvancing ? revealSnapshot : {});
+    if (revealAdvancing && revealSnapshot.phase !== previousRevealPhase) {
+      const phaseSignal = {
+        depressurizing: 'airlock-depressurize',
+        'power-echo': 'd9-power-echo',
+        'fracture-active': 'fracture-activate',
+      }[revealSnapshot.phase];
+      if (phaseSignal) audio.signal(phaseSignal);
+      previousRevealPhase = revealSnapshot.phase;
+    }
+    if (revealAdvancing && !spotlightBendSignaled && revealSnapshot.spotlightBend > 0.05) {
+      spotlightBendSignaled = true;
+      audio.signal('spotlight-bend');
+    }
+    controller.setBounds({ minZ: revealSnapshot.traversalOpen ? -205 : -142 });
+  }
   const canMove = shouldEnableMovement({
     locked: document.pointerLockElement === renderer.domElement,
     fallbackActive,
     modalOpen: ui.isModalOpen(),
     ending: ui.isEnding(),
+    maintenanceActive: maintenanceRuntime.suspendsMovement(),
   });
   controller.update(delta, canMove);
-  interaction.update();
+  if (maintenanceRuntime.suspendsMovement()) ui.hideInteraction();
+  else interaction.update();
   world.update(delta);
   renderer.render(scene, camera);
 }

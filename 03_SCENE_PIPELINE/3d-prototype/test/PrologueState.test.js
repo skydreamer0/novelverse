@@ -10,13 +10,40 @@ test('starts in maintenance with chapter-safe survival values', () => {
   assert.equal(state.deadlineHours, null);
 });
 
-test('repair steps must be completed in order', () => {
+test('maintenance result persists player performance and unlocks terminal', () => {
   const state = new PrologueState();
-  assert.equal(state.apply('pull-valve').ok, false);
-  assert.equal(state.apply('locate-short').ok, true);
-  assert.equal(state.apply('secure-joint').ok, true);
-  assert.equal(state.apply('pull-valve').ok, true);
+
+  const result = state.apply('complete-maintenance', {
+    complete: true,
+    oxygen: 74,
+    legLoad: 31,
+    repairQuality: 82,
+    failureCount: 2,
+    elapsed: 196,
+  });
+
+  assert.equal(result.ok, true);
   assert.equal(state.beat, BEATS.TERMINAL);
+  assert.equal(state.oxygen, 74);
+  assert.equal(state.legLoad, 31);
+  assert.equal(state.repairQuality, 82);
+  assert.equal(state.maintenanceFailures, 2);
+  assert.equal(state.maintenanceElapsed, 196);
+});
+
+test('rejects incomplete or corrupted maintenance results', () => {
+  const state = new PrologueState();
+
+  assert.equal(state.apply('complete-maintenance', { complete: false }).ok, false);
+  assert.equal(state.apply('complete-maintenance', {
+    complete: true,
+    oxygen: Number.NaN,
+    legLoad: 31,
+    repairQuality: 82,
+    failureCount: 2,
+    elapsed: 196,
+  }).ok, false);
+  assert.equal(state.beat, BEATS.MAINTENANCE);
 });
 
 test('terminal scan establishes the chapter threat', () => {

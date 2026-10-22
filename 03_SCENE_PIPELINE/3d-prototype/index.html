@@ -38,6 +38,21 @@
     <div id="interaction-prompt" class="interaction" hidden>按 E 操作</div>
     <div id="subtitle" class="subtitle" hidden></div>
 
+    <section id="maintenance-tool" class="maintenance-tool" hidden aria-label="第九段維修工具">
+      <header>
+        <span>FIELD TOOL／D9-LIFE</span>
+        <strong id="maintenance-phase">探測電纜</strong>
+      </header>
+      <div class="maintenance-tool__gauges">
+        <div><span>探針訊號</span><i id="maintenance-signal" role="meter" aria-label="探針訊號" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i></div>
+        <div><span>焊接熱度</span><i id="maintenance-heat" role="meter" aria-label="焊接熱度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i></div>
+        <div><span>接頭穩定</span><i id="maintenance-stability" role="meter" aria-label="接頭穩定" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i></div>
+        <div><span>管線壓力</span><i id="maintenance-pressure" role="meter" aria-label="管線壓力" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i></div>
+      </div>
+      <p id="maintenance-instruction">對準候選線路，按 E 探測電纜。</p>
+      <p id="maintenance-recovery" class="maintenance-tool__recovery" hidden aria-live="assertive">斷路器復歸中；保持呼吸，重新確認線路。</p>
+    </section>
+
     <section id="wristband" class="wristband" aria-label="林燼的磨損腕環">
       <div class="wristband__serial">D9-4417 <span>LINK/WEAK</span></div>
       <div class="wristband__grid">
