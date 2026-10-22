@@ -1,80 +1,114 @@
 import * as THREE from 'three';
-import { Player } from './Player.js';
-import { World } from './World.js';
+import { MothershipWorld } from './world/MothershipWorld.js';
+import { FirstPersonController, shouldEnableMovement } from './core/FirstPersonController.js';
+import { InteractionSystem } from './core/InteractionSystem.js';
+import { PrologueState } from './core/PrologueState.js';
+import { PrologueDirector } from './core/PrologueDirector.js';
 import { UIManager } from './UIManager.js';
-import { GameManager } from './GameManager.js';
-import { Enemies } from './Enemies.js';
+import { AudioDirector } from './core/AudioDirector.js';
+import { QualityManager } from './core/QualityManager.js';
+import { applyQaScene } from './dev/QaScene.js';
 
-// Setup Scene, Camera, Renderer
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0a1a);
-// Deep purple-black fog for the Abyss
-scene.fog = new THREE.FogExp2(0x1a0a2a, 0.02);
+scene.background = new THREE.Color(0x070a0d);
+scene.fog = new THREE.FogExp2(0x10151a, 0.018);
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.08, 800);
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
+const forcedQuality = new URLSearchParams(location.search).get('quality');
+const quality = new QualityManager(renderer, { force: forcedQuality });
+quality.apply();
 
-// Lighting
-const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Soft white light
-scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0x666699, 1.5); // Bluish light from Ark ship
-dirLight.position.set(50, 100, 50);
-dirLight.castShadow = true;
-scene.add(dirLight);
+scene.add(new THREE.HemisphereLight(0x8090a0, 0x050608, 0.65));
+const key = new THREE.DirectionalLight(0x9eb4c6, 1.1);
+key.position.set(20, 35, 15);
+scene.add(key);
 
-// Core Modules
-const uiManager = new UIManager();
-const player = new Player(camera, scene);
-const world = new World(scene);
-const enemies = new Enemies(scene);
-const gameManager = new GameManager(player, world, enemies, uiManager);
+const world = new MothershipWorld(scene);
+const controller = new FirstPersonController(camera, renderer.domElement);
+const audio = new AudioDirector();
+let fallbackActive = false;
+let hasStarted = false;
 
-// Handle Window Resize
-window.addEventListener('resize', onWindowResize, false);
-function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+function enableFallbackControl() {
+  fallbackActive = true;
+  controller.enableFallbackLook(true);
+  document.getElementById('instructions').style.display = 'none';
+  ui?.showSubtitle('滑鼠鎖定不可用：按住畫面拖曳視角，WASD 移動。');
 }
 
-// Custom Pointer Lock for Third Person
-let isLocked = false;
-const instructions = document.getElementById('instructions');
+function requestControl() {
+  audio.activate();
+  try {
+    const request = renderer.domElement.requestPointerLock();
+    request?.catch?.(enableFallbackControl);
+  } catch {
+    enableFallbackControl();
+  }
+}
 
-instructions.addEventListener('click', () => {
-  document.body.requestPointerLock();
+const ui = new UIManager({
+  onResume: requestControl,
+  onMute: (muted) => audio.setMuted(muted),
 });
+const state = new PrologueState();
+const director = new PrologueDirector({ state, world, ui, controller, audio });
+const interaction = new InteractionSystem(camera, {
+  onPrompt: (target) => target ? ui.showInteraction(`[E] ${target.label}`) : ui.hideInteraction(),
+  onAction: (action) => director.handleAction(action),
+});
+interaction.setTargets(world.getInteractables());
 
+const instructions = document.getElementById('instructions');
+document.getElementById('start-button').addEventListener('click', () => {
+  hasStarted = true;
+  requestControl();
+});
 document.addEventListener('pointerlockchange', () => {
-  if (document.pointerLockElement === document.body) {
-    isLocked = true;
-    instructions.style.display = 'none';
-  } else {
-    isLocked = false;
-    if (!gameManager.isGameOver) {
-      instructions.style.display = 'flex';
-    }
+  const locked = document.pointerLockElement === renderer.domElement;
+  if (locked) {
+    fallbackActive = false;
+    controller.enableFallbackLook(false);
+  }
+  instructions.style.display = locked || fallbackActive || ui.isModalOpen() || ui.isEnding() ? 'none' : 'grid';
+  if (!locked && hasStarted && !ui.isModalOpen() && !ui.isEnding()) {
+    instructions.querySelector('.premise').textContent = '遊戲已暫停。點擊下方按鈕返回第九段。';
+    document.getElementById('start-button').querySelector('span').textContent = '返回艙底';
   }
 });
 
-// Game Loop
-const clock = new THREE.Clock();
+if (import.meta.env.DEV) {
+  const qaScene = new URLSearchParams(location.search).get('qa');
+  if (qaScene && applyQaScene(qaScene, { director, controller, ui })) {
+    hasStarted = true;
+    fallbackActive = !ui.isModalOpen() && !ui.isEnding();
+  }
+}
 
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
-
-  const delta = clock.getDelta();
-
-  if (isLocked && !gameManager.isGameOver) {
-    player.update(delta); // Third person update
-    enemies.update(delta, player.getPosition());
-    gameManager.update(delta);
-  }
-
+  const delta = Math.min(clock.getDelta(), 0.05);
+  const canMove = shouldEnableMovement({
+    locked: document.pointerLockElement === renderer.domElement,
+    fallbackActive,
+    modalOpen: ui.isModalOpen(),
+    ending: ui.isEnding(),
+  });
+  controller.update(delta, canMove);
+  interaction.update();
+  world.update(delta);
   renderer.render(scene, camera);
 }
-
 animate();
