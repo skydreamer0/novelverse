@@ -32,3 +32,10 @@ This root workspace owns the Novel-to-Scene pipeline design and generated pipeli
 
 All Traditional Chinese text files in this workspace must be UTF-8 without BOM.
 
+
+
+## Work principle
+
+Less attention taken. More value delivered.
+
+Reduce unnecessary questions and narration; deliver useful, verified results. Preserve required approvals, risk disclosures, and blocker reports. This principle does not expand authorization or override safety and project rules.
